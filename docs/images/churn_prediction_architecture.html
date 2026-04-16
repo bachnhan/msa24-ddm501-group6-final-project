@@ -1,0 +1,367 @@
+
+<h2 class="sr-only">Interactive architecture diagram for a Customer Churn Prediction System with 5 layers: Data, ML Training, Serving, Monitoring, and CI/CD. Click any node to learn more.</h2>
+
+<style>
+.layer-label { font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.node-box { cursor: pointer; }
+.node-box:hover rect { opacity: .82; }
+.badge { font-size: 10px; font-weight: 500; }
+.panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 14px 16px; margin-top: 12px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+.panel strong { color: var(--color-text-primary); font-weight: 500; }
+.panel-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+.pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; margin: 2px 2px 0 0; }
+.pill-blue  { background: #E6F1FB; color: #0C447C; }
+.pill-teal  { background: #E1F5EE; color: #085041; }
+.pill-amber { background: #FAEEDA; color: #633806; }
+.pill-coral { background: #FAECE7; color: #712B13; }
+.pill-purple{ background: #EEEDFE; color: #3C3489; }
+.pill-green { background: #EAF3DE; color: #27500A; }
+.metrics-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.metric { background: var(--color-background-secondary); border-radius: 8px; padding: 8px 12px; flex: 1; min-width: 110px; }
+.metric-label { font-size: 11px; color: var(--color-text-secondary); }
+.metric-value { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+</style>
+
+<svg width="100%" viewBox="0 0 680 860" role="img">
+  <title>Customer Churn Prediction System Architecture</title>
+  <desc>Five-layer architecture: Data, ML Training, Serving, Monitoring, and CI/CD.</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- ── Layer 1: Data ── -->
+  <rect x="20" y="18" width="640" height="118" rx="12" fill="#E6F1FB" stroke="#85B7EB" stroke-width="0.5"/>
+  <text class="layer-label" x="36" y="38" fill="#185FA5">Layer 1 · Data</text>
+
+  <!-- IBM CSV -->
+  <g class="node-box" onclick="showPanel('ibm')">
+    <rect x="36" y="46" width="148" height="56" rx="8" fill="#B5D4F4" stroke="#378ADD" stroke-width="0.5"/>
+    <text x="110" y="68" text-anchor="middle" font-size="13" font-weight="500" fill="#0C447C">IBM Telco CSV</text>
+    <text x="110" y="85" text-anchor="middle" font-size="11" fill="#185FA5">7,043 records</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="184" y1="74" x2="214" y2="74" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Preprocessing -->
+  <g class="node-box" onclick="showPanel('preprocess')">
+    <rect x="216" y="46" width="200" height="56" rx="8" fill="#B5D4F4" stroke="#378ADD" stroke-width="0.5"/>
+    <text x="316" y="66" text-anchor="middle" font-size="13" font-weight="500" fill="#0C447C">Preprocessing</text>
+    <text x="316" y="83" text-anchor="middle" font-size="11" fill="#185FA5">Nulls · One-Hot · StandardScaler</text>
+  </g>
+
+  <!-- Arrow down to L2 -->
+  <line x1="316" y1="102" x2="316" y2="138" stroke="#378ADD" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Layer 2: ML Training ── -->
+  <rect x="20" y="142" width="640" height="138" rx="12" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="0.5"/>
+  <text class="layer-label" x="36" y="162" fill="#534AB7">Layer 2 · ML Training Pipeline</text>
+
+  <!-- Feature Eng -->
+  <g class="node-box" onclick="showPanel('features')">
+    <rect x="36" y="170" width="120" height="52" rx="8" fill="#CECBF6" stroke="#7F77DD" stroke-width="0.5"/>
+    <text x="96" y="190" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489">Feature Eng.</text>
+    <text x="96" y="207" text-anchor="middle" font-size="11" fill="#534AB7">20 features</text>
+  </g>
+  <line x1="156" y1="196" x2="176" y2="196" stroke="#7F77DD" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Model Training -->
+  <g class="node-box" onclick="showPanel('training')">
+    <rect x="178" y="170" width="160" height="52" rx="8" fill="#CECBF6" stroke="#7F77DD" stroke-width="0.5"/>
+    <text x="258" y="188" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489">Model Training</text>
+    <text x="258" y="205" text-anchor="middle" font-size="11" fill="#534AB7">LR · RF · XGBoost ★</text>
+  </g>
+  <line x1="338" y1="196" x2="358" y2="196" stroke="#7F77DD" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- MLflow -->
+  <g class="node-box" onclick="showPanel('mlflow')">
+    <rect x="360" y="170" width="110" height="52" rx="8" fill="#CECBF6" stroke="#7F77DD" stroke-width="0.5"/>
+    <text x="415" y="190" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489">MLflow</text>
+    <text x="415" y="207" text-anchor="middle" font-size="11" fill="#534AB7">Experiment tracking</text>
+  </g>
+  <line x1="470" y1="196" x2="490" y2="196" stroke="#7F77DD" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Model Registry -->
+  <g class="node-box" onclick="showPanel('registry')">
+    <rect x="492" y="170" width="148" height="52" rx="8" fill="#CECBF6" stroke="#7F77DD" stroke-width="0.5"/>
+    <text x="566" y="190" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489">Model Registry</text>
+    <text x="566" y="207" text-anchor="middle" font-size="11" fill="#534AB7">Champion / Challenger</text>
+  </g>
+
+  <!-- Arrow to L3 -->
+  <line x1="566" y1="222" x2="566" y2="248" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="566" y1="248" x2="420" y2="280" stroke="#7F77DD" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+
+  <!-- ── Layer 3: Serving ── -->
+  <rect x="20" y="284" width="640" height="148" rx="12" fill="#E1F5EE" stroke="#5DCAA5" stroke-width="0.5"/>
+  <text class="layer-label" x="36" y="304" fill="#0F6E56">Layer 3 · Serving · Docker :8000</text>
+
+  <!-- FastAPI -->
+  <g class="node-box" onclick="showPanel('fastapi')">
+    <rect x="36" y="312" width="112" height="52" rx="8" fill="#9FE1CB" stroke="#1D9E75" stroke-width="0.5"/>
+    <text x="92" y="332" text-anchor="middle" font-size="13" font-weight="500" fill="#085041">FastAPI</text>
+    <text x="92" y="349" text-anchor="middle" font-size="11" fill="#0F6E56">Gateway</text>
+  </g>
+  <line x1="148" y1="338" x2="168" y2="338" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Sklearn Pipeline -->
+  <g class="node-box" onclick="showPanel('sklearn')">
+    <rect x="170" y="312" width="130" height="52" rx="8" fill="#9FE1CB" stroke="#1D9E75" stroke-width="0.5"/>
+    <text x="235" y="332" text-anchor="middle" font-size="13" font-weight="500" fill="#085041">Sklearn Pipeline</text>
+    <text x="235" y="349" text-anchor="middle" font-size="11" fill="#0F6E56">Preprocess + predict</text>
+  </g>
+  <line x1="300" y1="338" x2="320" y2="338" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- XGBoost -->
+  <g class="node-box" onclick="showPanel('xgboost')">
+    <rect x="322" y="312" width="108" height="52" rx="8" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+    <text x="376" y="332" text-anchor="middle" font-size="13" font-weight="500" fill="#085041">XGBoost ★</text>
+    <text x="376" y="349" text-anchor="middle" font-size="11" fill="#0F6E56">Champion model</text>
+  </g>
+  <line x1="430" y1="338" x2="450" y2="338" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- SHAP -->
+  <g class="node-box" onclick="showPanel('shap')">
+    <rect x="452" y="312" width="96" height="52" rx="8" fill="#9FE1CB" stroke="#1D9E75" stroke-width="0.5"/>
+    <text x="500" y="332" text-anchor="middle" font-size="13" font-weight="500" fill="#085041">SHAP</text>
+    <text x="500" y="349" text-anchor="middle" font-size="11" fill="#0F6E56">Explainer</text>
+  </g>
+  <line x1="548" y1="338" x2="566" y2="338" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Response -->
+  <g class="node-box" onclick="showPanel('response')">
+    <rect x="568" y="312" width="76" height="52" rx="8" fill="#9FE1CB" stroke="#1D9E75" stroke-width="0.5"/>
+    <text x="606" y="332" text-anchor="middle" font-size="12" font-weight="500" fill="#085041">Response</text>
+    <text x="606" y="348" text-anchor="middle" font-size="10" fill="#0F6E56">prob · tier · codes</text>
+  </g>
+
+  <!-- Latency badge -->
+  <rect x="220" y="390" width="130" height="22" rx="11" fill="#085041" opacity=".85"/>
+  <text x="285" y="405" text-anchor="middle" font-size="11" font-weight="500" fill="#9FE1CB">P95 latency &lt; 150 ms</text>
+
+  <!-- Arrow to L4 -->
+  <line x1="92" y1="364" x2="92" y2="436" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Layer 4: Monitoring ── -->
+  <rect x="20" y="440" width="640" height="148" rx="12" fill="#FAEEDA" stroke="#EF9F27" stroke-width="0.5"/>
+  <text class="layer-label" x="36" y="460" fill="#854F0B">Layer 4 · Monitoring · Docker</text>
+
+  <!-- Prometheus -->
+  <g class="node-box" onclick="showPanel('prometheus')">
+    <rect x="36" y="468" width="148" height="52" rx="8" fill="#FAC775" stroke="#BA7517" stroke-width="0.5"/>
+    <text x="110" y="488" text-anchor="middle" font-size="13" font-weight="500" fill="#633806">Prometheus :9090</text>
+    <text x="110" y="505" text-anchor="middle" font-size="11" fill="#854F0B">scrapes /metrics · 15s</text>
+  </g>
+  <line x1="184" y1="494" x2="212" y2="494" stroke="#BA7517" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Grafana -->
+  <g class="node-box" onclick="showPanel('grafana')">
+    <rect x="214" y="468" width="200" height="52" rx="8" fill="#FAC775" stroke="#BA7517" stroke-width="0.5"/>
+    <text x="314" y="488" text-anchor="middle" font-size="13" font-weight="500" fill="#633806">Grafana :3000</text>
+    <text x="314" y="505" text-anchor="middle" font-size="11" fill="#854F0B">Business · Model · System</text>
+  </g>
+  <line x1="414" y1="494" x2="444" y2="494" stroke="#BA7517" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Alertmanager -->
+  <g class="node-box" onclick="showPanel('alertmanager')">
+    <rect x="446" y="468" width="148" height="52" rx="8" fill="#FAC775" stroke="#BA7517" stroke-width="0.5"/>
+    <text x="520" y="488" text-anchor="middle" font-size="13" font-weight="500" fill="#633806">Alertmanager</text>
+    <text x="520" y="505" text-anchor="middle" font-size="11" fill="#854F0B">Threshold rules</text>
+  </g>
+
+  <!-- KPI badges -->
+  <rect x="36" y="538" width="100" height="20" rx="10" fill="#633806" opacity=".8"/>
+  <text x="86" y="552" text-anchor="middle" font-size="10" font-weight="500" fill="#FAC775">AUC ≥ 0.85</text>
+  <rect x="148" y="538" width="100" height="20" rx="10" fill="#633806" opacity=".8"/>
+  <text x="198" y="552" text-anchor="middle" font-size="10" font-weight="500" fill="#FAC775">Recall ≥ 0.80</text>
+
+  <!-- Arrow to L5 -->
+  <line x1="520" y1="520" x2="520" y2="582" stroke="#BA7517" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+  <!-- ── Layer 5: CI/CD ── -->
+  <rect x="20" y="586" width="640" height="118" rx="12" fill="#FAECE7" stroke="#F0997B" stroke-width="0.5"/>
+  <text class="layer-label" x="36" y="606" fill="#993C1D">Layer 5 · CI/CD · GitHub Actions</text>
+
+  <!-- Steps -->
+  <g class="node-box" onclick="showPanel('lint')">
+    <rect x="36" y="614" width="86" height="48" rx="8" fill="#F5C4B3" stroke="#D85A30" stroke-width="0.5"/>
+    <text x="79" y="634" text-anchor="middle" font-size="13" font-weight="500" fill="#712B13">Lint</text>
+    <text x="79" y="650" text-anchor="middle" font-size="11" fill="#993C1D">flake8 · mypy</text>
+  </g>
+  <line x1="122" y1="638" x2="142" y2="638" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g class="node-box" onclick="showPanel('test')">
+    <rect x="144" y="614" width="86" height="48" rx="8" fill="#F5C4B3" stroke="#D85A30" stroke-width="0.5"/>
+    <text x="187" y="634" text-anchor="middle" font-size="13" font-weight="500" fill="#712B13">Test</text>
+    <text x="187" y="650" text-anchor="middle" font-size="11" fill="#993C1D">pytest · coverage</text>
+  </g>
+  <line x1="230" y1="638" x2="250" y2="638" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g class="node-box" onclick="showPanel('docker')">
+    <rect x="252" y="614" width="100" height="48" rx="8" fill="#F5C4B3" stroke="#D85A30" stroke-width="0.5"/>
+    <text x="302" y="634" text-anchor="middle" font-size="13" font-weight="500" fill="#712B13">Docker Build</text>
+    <text x="302" y="650" text-anchor="middle" font-size="11" fill="#993C1D">multi-stage</text>
+  </g>
+  <line x1="352" y1="638" x2="372" y2="638" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g class="node-box" onclick="showPanel('gate')">
+    <rect x="374" y="614" width="130" height="48" rx="8" fill="#F5C4B3" stroke="#D85A30" stroke-width="1"/>
+    <text x="439" y="632" text-anchor="middle" font-size="12" font-weight="500" fill="#712B13">Validation Gate</text>
+    <text x="439" y="650" text-anchor="middle" font-size="11" fill="#993C1D">AUC · Recall check</text>
+  </g>
+  <line x1="504" y1="638" x2="524" y2="638" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <g class="node-box" onclick="showPanel('deploy')">
+    <rect x="526" y="614" width="114" height="48" rx="8" fill="#F5C4B3" stroke="#D85A30" stroke-width="0.5"/>
+    <text x="583" y="634" text-anchor="middle" font-size="13" font-weight="500" fill="#712B13">Deploy</text>
+    <text x="583" y="650" text-anchor="middle" font-size="11" fill="#993C1D">to Docker · :8000</text>
+  </g>
+
+  <!-- Legend -->
+  <rect x="20" y="722" width="640" height="34" rx="8" fill="none" stroke="var(--b)" stroke-width="0.5" opacity=".3"/>
+  <circle cx="48" cy="739" r="6" fill="#B5D4F4" stroke="#378ADD" stroke-width="0.5"/>
+  <text x="60" y="743" font-size="11" fill="#185FA5">Data</text>
+  <circle cx="110" cy="739" r="6" fill="#CECBF6" stroke="#7F77DD" stroke-width="0.5"/>
+  <text x="122" y="743" font-size="11" fill="#534AB7">ML Training</text>
+  <circle cx="200" cy="739" r="6" fill="#9FE1CB" stroke="#1D9E75" stroke-width="0.5"/>
+  <text x="212" y="743" font-size="11" fill="#0F6E56">Serving</text>
+  <circle cx="268" cy="739" r="6" fill="#FAC775" stroke="#BA7517" stroke-width="0.5"/>
+  <text x="280" y="743" font-size="11" fill="#854F0B">Monitoring</text>
+  <circle cx="354" cy="739" r="6" fill="#F5C4B3" stroke="#D85A30" stroke-width="0.5"/>
+  <text x="366" y="743" font-size="11" fill="#993C1D">CI/CD</text>
+  <text x="620" y="743" text-anchor="end" font-size="11" fill="#888">Click any node ↗</text>
+</svg>
+
+<div id="info-panel" class="panel" style="display:none"></div>
+
+<div class="metrics-row">
+  <div class="metric">
+    <div class="metric-label">ROC-AUC target</div>
+    <div class="metric-value" style="color:#0C447C">≥ 0.85</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Recall target</div>
+    <div class="metric-value" style="color:#0F6E56">≥ 0.80</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">API latency P95</div>
+    <div class="metric-value" style="color:#633806">&lt; 150 ms</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Training records</div>
+    <div class="metric-value">7,043</div>
+  </div>
+</div>
+
+<script>
+const panels = {
+  ibm: {
+    title: 'IBM Telco dataset',
+    body: 'The canonical churn dataset with <strong>7,043 customer records</strong> and 21 raw features including tenure, contract type, monthly charges, and service subscriptions. Target variable: <code>Churn</code> (binary). ~26% churn rate — class imbalance handled during preprocessing.',
+    pills: ['CSV source', '21 features', '26% churn rate']
+  },
+  preprocess: {
+    title: 'Preprocessing pipeline',
+    body: '<strong>Null handling:</strong> TotalCharges has 11 missing values (converted from blank string) — imputed with median. <strong>One-Hot Encoding:</strong> applied to 16 categorical columns. <strong>StandardScaler:</strong> normalises numeric columns (tenure, MonthlyCharges, TotalCharges) to zero mean and unit variance.',
+    pills: ['Null imputation', 'One-Hot Encoding', 'StandardScaler', 'Train/test split 80/20']
+  },
+  features: {
+    title: 'Feature engineering',
+    body: 'Derived features include <strong>charge-per-month ratio</strong>, <strong>service bundling score</strong> (count of active services), and <strong>contract risk tier</strong>. Final feature matrix has ~20 engineered + original numeric features after encoding and dropping redundant columns.',
+    pills: ['Charge ratio', 'Bundle score', 'Contract tier', 'Feature selection']
+  },
+  training: {
+    title: 'Model training',
+    body: '<strong>Logistic Regression</strong> — baseline, L2 regularisation, max_iter=1000. <strong>Random Forest</strong> — 100 estimators, class_weight=balanced. <strong>XGBoost ★</strong> — selected champion: scale_pos_weight tuned for imbalance, early stopping, hyperparameter search via GridSearchCV (5-fold CV).',
+    pills: ['Logistic Regression', 'Random Forest', 'XGBoost ★ champion', '5-fold CV', 'GridSearchCV']
+  },
+  mlflow: {
+    title: 'MLflow experiment tracking',
+    body: 'Each training run logs: <strong>parameters</strong> (model hyperparameters), <strong>metrics</strong> (AUC, Recall, F1, Precision), and <strong>artifacts</strong> (serialised model, feature importance plot, SHAP summary). UI accessible at <code>localhost:5000</code>. Enables reproducible comparison across all experiments.',
+    pills: ['Params logging', 'Metrics logging', 'Artifact store', 'Run comparison']
+  },
+  registry: {
+    title: 'Model registry',
+    body: 'MLflow Model Registry stores <strong>Champion</strong> (currently deployed) and <strong>Challenger</strong> (candidate) model versions. Promotion requires passing the Validation Gate in CI/CD: AUC ≥ 0.85 and Recall ≥ 0.80 on a held-out validation set. Enables safe A/B rollout and instant rollback.',
+    pills: ['Champion model', 'Challenger model', 'Version control', 'Rollback ready']
+  },
+  fastapi: {
+    title: 'FastAPI gateway',
+    body: 'Exposes <code>POST /predict</code> endpoint accepting JSON with customer feature fields. Validates input with <strong>Pydantic</strong> schemas, routes to the sklearn pipeline, and returns structured response. Also serves <code>GET /health</code> and <code>GET /metrics</code> (Prometheus scrape endpoint).',
+    pills: ['POST /predict', 'GET /health', 'GET /metrics', 'Pydantic validation']
+  },
+  sklearn: {
+    title: 'Scikit-learn pipeline',
+    body: 'A serialised <code>Pipeline</code> object chains the preprocessing steps (imputer → encoder → scaler) directly with the model. Loaded once at startup and reused per request — ensures training/serving parity so no feature transformation drift can occur between training and inference.',
+    pills: ['Training/serving parity', 'Serialised pickle', 'Imputer → Encoder → Scaler']
+  },
+  xgboost: {
+    title: 'XGBoost champion model',
+    body: 'Selected after systematic comparison. Outperforms Logistic Regression on Recall (+12pp) and Random Forest on inference latency (–40ms). Key hyperparameters: <strong>n_estimators=200, max_depth=5, learning_rate=0.05, scale_pos_weight≈2.9</strong>. Target metrics: ROC-AUC ≥ 0.85, Recall ≥ 0.80.',
+    pills: ['n_estimators=200', 'max_depth=5', 'lr=0.05', 'scale_pos_weight=2.9']
+  },
+  shap: {
+    title: 'SHAP explainability',
+    body: 'Uses <code>shap.TreeExplainer</code> for fast exact SHAP values on tree models. Per-prediction <strong>reason_codes</strong> identify top 3 features driving the churn score (e.g. "high monthly charges", "month-to-month contract"). Summary plots generated for model validation and stakeholder reporting.',
+    pills: ['TreeExplainer', 'Per-prediction reasons', 'Top-3 feature codes', 'Global SHAP summary']
+  },
+  response: {
+    title: 'API response schema',
+    body: 'Returns a JSON payload with three key fields: <strong>churn_probability</strong> (float 0–1), <strong>risk_tier</strong> (LOW / MEDIUM / HIGH based on probability thresholds 0.3 / 0.6), and <strong>reason_codes</strong> (list of top SHAP-derived feature explanations).',
+    pills: ['churn_probability', 'risk_tier: LOW/MED/HIGH', 'reason_codes[]', 'response_time_ms']
+  },
+  prometheus: {
+    title: 'Prometheus :9090',
+    body: 'Scrapes the FastAPI <code>/metrics</code> endpoint every <strong>15 seconds</strong>. Tracked metrics include: <code>prediction_requests_total</code>, <code>prediction_latency_seconds</code> (histogram), <code>churn_score_distribution</code> (gauge), and <code>model_drift_score</code>. Data retained for 15 days.',
+    pills: ['Scrape interval: 15s', 'Request counter', 'Latency histogram', 'Drift score gauge']
+  },
+  grafana: {
+    title: 'Grafana :3000 (3 dashboards)',
+    body: '<strong>Business Pulse:</strong> daily churn predictions, high-risk customer count, tier distribution. <strong>Model Health:</strong> rolling AUC (7-day), feature drift scores, prediction distribution shift. <strong>System Health:</strong> API request rate, P50/P95/P99 latency, error rate, Docker container CPU/memory.',
+    pills: ['Business Pulse', 'Model Health', 'System Health', '3 dashboards']
+  },
+  alertmanager: {
+    title: 'Alertmanager',
+    body: 'Routes Prometheus alerts to configured receivers (Slack, email). Key alert rules: <strong>AUC drops below 0.82</strong> (critical, model degradation), <strong>P95 latency > 200ms</strong> (warning), <strong>error rate > 1%</strong> (critical), <strong>drift score > 0.15</strong> (warning, triggers retraining pipeline).',
+    pills: ['AUC drop alert', 'Latency spike alert', 'Drift alert → retrain', 'Slack / email routing']
+  },
+  lint: {
+    title: 'Lint stage',
+    body: 'Runs <code>flake8</code> for PEP8 style compliance and <code>mypy</code> for static type checking across the src/ directory. Fails the pipeline on any error. Ensures code quality gates before any heavier steps run, keeping CI fast.',
+    pills: ['flake8', 'mypy', 'PEP8 compliance']
+  },
+  test: {
+    title: 'Test stage',
+    body: 'Runs <code>pytest</code> with coverage reporting. Test suite covers: unit tests for preprocessing functions, integration tests for the full sklearn pipeline (fixture data), API endpoint tests via <code>TestClient</code>, and a smoke test of model loading and inference.',
+    pills: ['pytest', 'TestClient', 'Coverage report', 'Unit + integration']
+  },
+  docker: {
+    title: 'Docker build stage',
+    body: 'Multi-stage Dockerfile: builder stage installs deps and runs tests; final stage copies only the app and dependencies, producing a lean image (~350MB). Tagged with git SHA for traceability. Pushed to container registry on success.',
+    pills: ['Multi-stage build', 'Git SHA tag', 'Registry push', '~350MB image']
+  },
+  gate: {
+    title: 'Model validation gate',
+    body: 'Critical quality checkpoint: loads the candidate model, runs inference on a <strong>held-out validation slice</strong> (not seen during training), and asserts <strong>ROC-AUC ≥ 0.85</strong> AND <strong>Recall ≥ 0.80</strong>. Fails the entire pipeline if either threshold is not met — preventing a degraded model from reaching production.',
+    pills: ['AUC ≥ 0.85 required', 'Recall ≥ 0.80 required', 'Validation slice', 'Blocks deploy on fail']
+  },
+  deploy: {
+    title: 'Deploy stage',
+    body: 'Deploys the validated Docker image to the serving environment, updating the <code>:8000</code> service. Uses a blue-green strategy: new container starts and passes health check before old one is stopped — ensuring zero-downtime deployment. Promoted to Champion in MLflow Registry on success.',
+    pills: ['Blue-green deploy', 'Zero downtime', ':8000 port', 'Registry promotion']
+  },
+};
+
+function showPanel(key) {
+  const d = panels[key];
+  const pillColors = { ibm:'blue', preprocess:'blue', features:'purple', training:'purple', mlflow:'purple', registry:'purple', fastapi:'teal', sklearn:'teal', xgboost:'teal', shap:'teal', response:'teal', prometheus:'amber', grafana:'amber', alertmanager:'amber', lint:'coral', test:'coral', docker:'coral', gate:'coral', deploy:'coral' };
+  const color = pillColors[key] || 'blue';
+  const pillsHtml = (d.pills || []).map(p => `<span class="pill pill-${color}">${p}</span>`).join('');
+  const panel = document.getElementById('info-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div class="panel-title">${d.title}</div><div>${d.body}</div><div style="margin-top:8px">${pillsHtml}</div>`;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>

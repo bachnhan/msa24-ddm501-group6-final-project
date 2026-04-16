@@ -4,7 +4,7 @@
 **Course:** DDM501 - AI in Production: From Models to Systems
 **Dataset:** IBM Telco Customer Churn
 **Prepared by:** Lê Huỳnh Trang
-
+**Interactive Diagram:** [View Architecture Visual](docs/images/churn_prediction_architecture.html)
 ---
 
 ## 1. HIGH-LEVEL ARCHITECTURE
