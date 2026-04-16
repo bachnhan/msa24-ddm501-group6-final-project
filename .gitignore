@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# Models (large files)
+models/*.pkl
+!models/.gitkeep
+
+# Data
+data/
+*.csv
+
+# Logs
+*.log
+
+# Docker volumes (local data)
+prometheus_data/
+grafana_data/
+
+# OS
+.DS_Store
+Thumbs.db

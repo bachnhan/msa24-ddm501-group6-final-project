@@ -1,0 +1,20 @@
+# =============================================================================
+# Grafana Data Source Provisioning
+# DDM501 - Lab 2: Monitoring & Production Deployment
+#
+# This file automatically configures Prometheus as a data source in Grafana.
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: POST

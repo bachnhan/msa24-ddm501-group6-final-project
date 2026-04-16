@@ -1,0 +1,126 @@
+# =============================================================================
+# Docker Compose - Full Monitoring Stack
+# DDM501 - Lab 2: Monitoring & Production Deployment
+#
+#
+# Services:
+# - api: FastAPI application with metrics
+# - prometheus: Metrics collection and storage
+# - grafana: Visualization and dashboards
+#
+# Usage:
+#   docker-compose up -d
+#   docker-compose logs -f
+#   docker-compose down
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Movie Rating API
+  # ===========================================================================
+  api:
+    build: .
+    container_name: movie-rating-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODEL_VERSION=1.0.0
+      - METRICS_ENABLED=true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Requirements:
+  # - Use image: prom/prometheus:v2.48.0
+  # - Expose port 9090
+  # - Mount prometheus.yml config
+  # - Mount alerts directory
+  # - Use named volume for data persistence
+  # - Add to monitoring network
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts:/etc/prometheus/alerts
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Requirements:
+  # - Use image: grafana/grafana:10.2.2
+  # - Expose port 3000
+  # - Mount provisioning configs (datasources, dashboards)
+  # - Mount dashboards directory
+  # - Set admin credentials via environment variables
+  # - Use named volume for data persistence
+  # - Depend on prometheus service
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Node Exporter provides system-level metrics (CPU, memory, disk, network)
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  prometheus_data:
+  grafana_data:
