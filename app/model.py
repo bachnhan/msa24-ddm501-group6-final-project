@@ -1,16 +1,17 @@
 """
-ML Model wrapper for movie rating prediction with metrics instrumentation.
-
-
+ML Model wrapper for Customer Churn Prediction.
+Uses a scikit-learn pipeline for classification.
 """
 
 import pickle
 import logging
 import time
+import numpy as np
+import pandas as pd
 from pathlib import Path
 from typing import List, Tuple, Optional
 
-from app.config import MODEL_PATH, MIN_RATING, MAX_RATING, MODEL_VERSION
+from app.config import MODEL_PATH, MODEL_VERSION
 from app.metrics import (
     PREDICTION_COUNT,
     PREDICTION_LATENCY,
@@ -19,7 +20,6 @@ from app.metrics import (
     MODEL_LOADED,
     MODEL_INFO,
     MODEL_LAST_RELOAD,
-    BATCH_SIZE,
 )
 
 # Setup logging
@@ -27,201 +27,104 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class MovieRatingModel:
+class ChurnModel:
     """
-    Wrapper class for the movie rating prediction model.
-    
-    This class handles:
-    - Loading the trained model from disk
-    - Making single predictions
-    - Making batch predictions
-    - Recording metrics for monitoring
+    Wrapper class for the Customer Churn Prediction model.
     """
     
     def __init__(self, model_path: str = MODEL_PATH):
-        """
-        Initialize the model wrapper.
-        
-        Args:
-            model_path: Path to the saved model file (.pkl)
-        """
         self.model_path = model_path
         self.model = None
         self.version = MODEL_VERSION
         self._load_model()
     
     def _load_model(self) -> None:
-        """Load the trained model from disk and update metrics."""
+        """Load the trained model from disk."""
         try:
             with open(self.model_path, "rb") as f:
                 self.model = pickle.load(f)
-            logger.info(f"Model loaded successfully from {self.model_path}")
+            logger.info(f"Churn Model loaded successfully from {self.model_path}")
             
-            # Update model metrics after loading
-            # Set MODEL_LOADED gauge to 1
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(1)
-            
-            # Record the reload timestamp
             if MODEL_LAST_RELOAD is not None:
                 MODEL_LAST_RELOAD.set(time.time())
-            
-            # Set model info
             if MODEL_INFO is not None:
                 MODEL_INFO.info({
                     'version': self.version,
-                    'type': 'SVD',
+                    'type': 'RandomForestClassifier',
                     'path': str(self.model_path)
                 })
-            
-        except FileNotFoundError:
-            logger.error(f"Model file not found: {self.model_path}")
-            
-            # Set MODEL_LOADED to 0 on failure
-            if MODEL_LOADED is not None:
-                MODEL_LOADED.set(0)
-            
-            raise
         except Exception as e:
             logger.error(f"Error loading model: {e}")
-            
-            # if MODEL_LOADED is not None:
-            #     MODEL_LOADED.set(0)
-            
-            raise
+            if MODEL_LOADED is not None:
+                MODEL_LOADED.set(0)
+            # We don't raise here to allow the API to start in a degraded state
     
-    def predict(self, user_id: str, movie_id: str) -> float:
+    def predict(self, data_dict: dict) -> Tuple[bool, float]:
         """
-        Predict rating for a single user-movie pair.
+        Make a churn prediction for a single customer.
         
-        Args:
-            user_id: User ID (string)
-            movie_id: Movie ID (string)
-            
         Returns:
-            Predicted rating (float between 1.0 and 5.0)
+            Tuple of (is_churn, churn_probability)
         """
         if self.model is None:
             raise RuntimeError("Model not loaded")
         
-        # Record start time for latency measurement
         start_time = time.time()
         
         try:
-            # Make prediction
-            prediction = self.model.predict(user_id, movie_id)
-            rating = round(prediction.est, 2)
+            # Convert dictionary to DataFrame for the pipeline
+            df = pd.DataFrame([data_dict])
             
-            # Clip to valid range
-            rating = max(MIN_RATING, min(MAX_RATING, rating))
+            # Get probability [class_0_prob, class_1_prob]
+            probs = self.model.predict_proba(df)[0]
+            churn_prob = float(probs[1])
+            is_churn = bool(churn_prob >= 0.5)
             
-            # Calculate duration and record metrics
             duration = time.time() - start_time
             
-            # Record prediction count
+            # Record metrics
             if PREDICTION_COUNT is not None:
                 PREDICTION_COUNT.labels(model_version=self.version).inc()
-            
-            # Record prediction latency
             if PREDICTION_LATENCY is not None:
                 PREDICTION_LATENCY.labels(model_version=self.version).observe(duration)
-            
-            # Record prediction value distribution
             if PREDICTION_VALUE is not None:
-                PREDICTION_VALUE.labels(model_version=self.version).observe(rating)
+                PREDICTION_VALUE.labels(model_version=self.version).observe(churn_prob)
             
-            return rating
-            
-        except ValueError as e:
-            # Record validation errors
-            if PREDICTION_ERRORS is not None:
-                PREDICTION_ERRORS.labels(
-                    error_type='validation_error',
-                    model_version=self.version
-                ).inc()
-            raise
+            return is_churn, churn_prob
             
         except Exception as e:
-            # Record unknown errors
             if PREDICTION_ERRORS is not None:
                 PREDICTION_ERRORS.labels(
-                    error_type='unknown_error',
+                    error_type=type(e).__name__,
                     model_version=self.version
                 ).inc()
             raise
     
-    def predict_batch(self, pairs: List[Tuple[str, str]]) -> List[float]:
-        """
-        Predict ratings for multiple user-movie pairs.
-        
-        Args:
-            pairs: List of (user_id, movie_id) tuples
-            
-        Returns:
-            List of predicted ratings
-        """
-        if self.model is None:
-            raise RuntimeError("Model not loaded")
-        
-        # Record batch size
-        if BATCH_SIZE is not None:
-            BATCH_SIZE.observe(len(pairs))
-        
-        return [self.predict(user_id, movie_id) for user_id, movie_id in pairs]
-    
-    def predict_with_latency(self, user_id: str, movie_id: str) -> Tuple[float, float]:
-        """
-        Predict rating and return latency in milliseconds.
-        
-        Args:
-            user_id: User ID
-            movie_id: Movie ID
-            
-        Returns:
-            Tuple of (predicted_rating, latency_ms)
-        """
+    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, float]:
+        """Predict and return result with latency in ms."""
         start_time = time.time()
-        rating = self.predict(user_id, movie_id)
+        is_churn, prob = self.predict(data_dict)
         latency_ms = (time.time() - start_time) * 1000
-        return rating, latency_ms
-    
+        return is_churn, prob, latency_ms
+
     def is_loaded(self) -> bool:
-        """Check if model is loaded."""
         return self.model is not None
-    
+
     def get_info(self) -> dict:
-        """Get model information."""
         return {
             "version": self.version,
-            "type": "SVD",
+            "type": "RandomForestClassifier",
             "is_loaded": self.is_loaded(),
             "path": self.model_path,
         }
 
+# Singleton instance
+_model_instance: Optional[ChurnModel] = None
 
-# =============================================================================
-# Singleton instance management
-# =============================================================================
-
-_model_instance: Optional[MovieRatingModel] = None
-
-
-def get_model() -> MovieRatingModel:
-    """Get or create the model singleton instance."""
+def get_model() -> ChurnModel:
     global _model_instance
     if _model_instance is None:
-        _model_instance = MovieRatingModel()
-    return _model_instance
-
-
-def reset_model() -> None:
-    """Reset the model instance (useful for testing)."""
-    global _model_instance
-    _model_instance = None
-
-
-def reload_model() -> MovieRatingModel:
-    """Force reload the model."""
-    global _model_instance
-    _model_instance = MovieRatingModel()
+        _model_instance = ChurnModel()
     return _model_instance

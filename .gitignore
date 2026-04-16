@@ -41,6 +41,10 @@ data/
 prometheus_data/
 grafana_data/
 
+# MLflow
+mlruns/
+outputs/
+
 # OS
 .DS_Store
 Thumbs.db

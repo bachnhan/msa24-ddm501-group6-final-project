@@ -1,17 +1,15 @@
 # =============================================================================
-# Docker Compose - Full Monitoring Stack
-# DDM501 - Lab 2: Monitoring & Production Deployment
-#
+# Docker Compose - Full ML Production Stack
+# DDM501 - Final Project: MovieLens Recommendation System
 #
 # Services:
-# - api: FastAPI application with metrics
+# - api: FastAPI application with ML metrics
 # - prometheus: Metrics collection and storage
 # - grafana: Visualization and dashboards
+# - node-exporter: System-level metrics
 #
 # Usage:
 #   docker-compose up -d
-#   docker-compose logs -f
-#   docker-compose down
 # =============================================================================
 
 services:

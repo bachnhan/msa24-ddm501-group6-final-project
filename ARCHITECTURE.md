@@ -1,75 +1,106 @@
-# System Architecture & Design
+# System Architecture & Design Specification
 
-This document details the architectural decisions, component interactions, and technical trade-offs for the Movie Recommendation System.
+This document provides a comprehensive breakdown of the Customer Churn Prediction System's architecture, data flows, and technical justifications.
 
-## 1. High-Level Architecture
+## 1. High-Level System Architecture
 
-The system follows a classic **Predictive Service Pattern** where a trained model is wrapped in a REST API and continuously monitored.
+Our system is built on a containerized microservices architecture optimized for low-latency inference and high observability.
 
 ```mermaid
-graph LR
-    subgraph "Infrastructure"
-        D[Docker Engine]
-        DC[Docker Compose]
+graph TD
+    subgraph "External Layer"
+        User([CRM / Business App])
     end
 
-    subgraph "Application Layer"
-        API[FastAPI Service]
-        Model[SVD Model Instance]
-        Metrics[Prometheus Exporter]
+    subgraph "Application Tier (Docker)"
+        LB[API Gateway / FastAPI]
+        subgraph "ML Engine"
+            PP[Preprocessor Pipeline]
+            RF[Random Forest Classifier]
+        end
+        GU[Output Guardrails]
     end
 
-    subgraph "State & Storage"
-        PKL[(model.pkl)]
-        CSV[(ratings.csv)]
+    subgraph "State & Artifacts"
+        ARTIFACTS[(Model Registry .pkl)]
+        LOGS[(Prometheus TSDB)]
     end
 
-    subgraph "Observability"
-        Prom[Prometheus]
-        Graf[Grafana]
+    subgraph "Observability & Lifecycle"
+        MLF[MLflow Experiment Tracking]
+        GRAF[Grafana Dashboards]
+        GHA[GitHub Actions CI/CD]
     end
 
-    API --> Model
-    Model --> PKL
-    API --> Metrics
-    Prom --> Metrics
-    Graf --> Prom
+    User -->|POST /predict| LB
+    LB --> PP
+    PP --> RF
+    RF --> GU
+    GU -->|Result| LB
+    LB -.->|Metrics| LOGS
+    LOGS --> GRAF
+    GHA -->|Build & Test| LB
+    MLF -->|Track Training| ARTIFACTS
 ```
 
-## 2. Component Responsibilities
+## 2. Component Design & Responsibilities
 
 | Component | Responsibility | Technology |
 |:--- |:--- |:--- |
-| **Gateway/API** | Handles HTTP requests, validation, and serialization. | FastAPI, Pydantic |
-| **ML Engine** | Performs matrix factorization for rating prediction. | Surprise (SVD) |
-| **Observation** | Collects system and model-level latency/distribution. | Prometheus |
-| **Visualization** | Provides actionable dashboards for stakeholders. | Grafana |
-| **Orchestration** | Ensures all services are networked and replicable. | Docker Compose |
+| **FastAPI Gateway** | Entry point for REST requests. Handles authentication (placeholder), routing, and async concurrency. | FastAPI, Uvicorn |
+| **Pydantic Validation** | Enforces strict schema validation for the 10+ customer features. | Pydantic V2 |
+| **Preprocessing Pipeline** | Handles missing value imputation, standard scaling, and one-hot encoding for categorical features. | Scikit-Learn Pipeline |
+| **Inference Engine** | Executes the Random Forest ensemble weights to produce churn probabilities. | Scikit-Learn (Random Forest) |
+| **Prometheus Exporter** | Exposes real-time system metrics (CPU/RAM) and ML metrics (Churn distribution, Error rate). | prometheus-client |
+| **Grafana** | Provides visual health monitoring and business KPIs. | Grafana OSS |
 
-## 3. Data Flow
+## 3. Data Flow Diagram (Inference)
 
-1.  **Ingestion**: Raw ratings are processed into a Surprise-compatible dataset.
-2.  **Training**: SVD decomposes the user-item matrix into latent factors.
-3.  **Inference**:
-    *   API receives `user_id` and `movie_id`.
-    *   Model retrieves latent vectors and computes the dot product.
-    *   Result is clipped and returned with a latency timestamp.
-4.  **Monitoring**: Every prediction increments a Counter and records value in a Histogram.
+```mermaid
+sequenceDiagram
+    participant C as Client (CRM)
+    participant A as API (FastAPI)
+    participant P as Preprocessor
+    participant M as RF Model
+    participant G as Guardrails
+    participant O as Observability
 
-## 4. Technical Justifications & Trade-offs
+    C->>A: POST /predict {customer_data}
+    A->>A: Pydantic Schema Check
+    alt Invalid Data
+        A-->>C: 422 Unprocessable Entity
+    else Valid Data
+        A->>P: Send raw features
+        P->>P: Scale & Encode (Pipeline)
+        P->>M: Prepared Tensors
+        M->>G: Raw Probability [0..1]
+        G->>G: Verification & Clipping
+        G-->>A: Validated Prediction
+        A->>O: Increment ML Counter
+        A-->>C: 200 OK {churn_prob, is_churn}
+    end
+```
 
-### Why FastAPI?
-- **Pro**: High performance (Asynchronous), auto-generated OpenAPI docs.
-- **Trade-off**: Slightly higher learning curve than Flask, but significantly better for production throughput.
+## 4. Technology Stack Justification
 
-### Why SVD (Collaborative Filtering)?
-- **Pro**: Effective at capturing latent relationships between users and items with minimal feature engineering.
-- **Trade-off**: Suffers from the "Cold Start" problem (new users/movies). We handle this by returning a global mean or handled error.
+| Choice | Justification |
+|:--- |:--- |
+| **Python 3.9** | Industry standard for ML with mature library support. |
+| **FastAPI** | High performance, type-safe, and auto-generates Swagger documentation. |
+| **Random Forest** | Non-linear model that handles mixed data types (categorical/numeric) well and provides feature importance. |
+| **MLflow** | Unifies experiment tracking, model versioning, and lifecycle management. |
+| **Docker Compose** | Simplifies multi-service orchestration (API + Monitoring) for localized production environments. |
 
-### Why Docker Compose?
-- **Pro**: Single-command deployment, ensures environment parity between dev and prod.
-- **Trade-off**: Not suitable for massive horizontal scaling (K8s would be preferred for larger scales), but perfect for the scope of this project.
+## 5. Trade-offs Analysis
 
-## 5. Scalability & Availability
-- **Horizontal Scaling**: The API service is stateless and can be scaled using a load balancer (e.g., Nginx).
-- **Health Checks**: Implemented in `docker-compose.yml` to ensure Prometheus only scrapes healthy instances.
+### A. Scalability
+- **Decision**: Stateless API design.
+- **Trade-off**: Requires an external load balancer (like Nginx) to scale horizontally. Complexity increases slightly as stickiness is not preserved, but availability is maximized.
+
+### B. Cost
+- **Decision**: Open Source Stack (Prometheus/Grafana/FastAPI).
+- **Trade-off**: Zero licensing costs. However, operational cost involves managing the overhead of the monitoring stack (TSDB storage).
+
+### C. Complexity
+- **Decision**: Monolithic Repository for API and Training.
+- **Trade-off**: Easier for small teams to manage (CI/CD simplicity). Less suitable for hyper-scale teams where micro-repos are preferred.

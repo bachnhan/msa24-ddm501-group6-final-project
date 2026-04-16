@@ -43,4 +43,4 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t movielens-api:latest .
+          docker build -t churn-prediction-api:latest .
