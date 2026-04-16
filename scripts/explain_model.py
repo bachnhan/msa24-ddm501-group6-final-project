@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def explain_churn(model_path="models/svd_model.pkl"):
+def explain_churn(model_path="models/churn_model.pkl"):
     if not Path(model_path).exists():
         print("Model not found.")
         return

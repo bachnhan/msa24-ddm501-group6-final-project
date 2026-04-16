@@ -1,5 +1,5 @@
 """
-Prometheus metrics definitions for the Movie Rating API.
+Prometheus metrics definitions for the Customer Churn API.
 
 This module defines all Prometheus metrics used for monitoring the application.
 

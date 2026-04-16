@@ -1,6 +1,6 @@
 # =============================================================================
 # Prometheus Configuration
-# DDM501 - Lab 2: Monitoring & Production Deployment
+# DDM501 - Final Project
 #
 #
 # Documentation: https://prometheus.io/docs/prometheus/latest/configuration/
@@ -42,12 +42,12 @@ scrape_configs:
   # ==========================================================================
   # ==========================================================================
   # Requirements:
-  # - Job name: 'movie-rating-api'
+  # - Job name: 'customer-churn-api'
   # - Target: 'api:8000' (Docker service name)
   # - Metrics path: '/metrics'
   # - Scrape interval: 10s (more frequent than default)
   
-  - job_name: 'movie-rating-api'
+  - job_name: 'customer-churn-api'
     static_configs:
       - targets: ['api:8000']
     metrics_path: '/metrics'
@@ -57,7 +57,7 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__address__]
         target_label: service
-        replacement: movie-rating-api
+        replacement: customer-churn-api
 
   # ==========================================================================
   # Node Exporter for system metrics

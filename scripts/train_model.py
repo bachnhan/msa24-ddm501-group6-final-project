@@ -21,7 +21,7 @@ def main():
     
     models_dir = Path(__file__).parent.parent / "models"
     models_dir.mkdir(exist_ok=True)
-    model_path = models_dir / "svd_model.pkl" # Keeping path same for simplicity in config
+    model_path = models_dir / "churn_model.pkl"
     
     # MLflow tracking
     mlflow.set_experiment("Customer_Churn_Prediction")

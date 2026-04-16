@@ -41,7 +41,7 @@ def test_data_schema_validation():
 
 def test_model_output_range():
     """Verify that model churn probability is within [0, 1]."""
-    model_path = Path("models/svd_model.pkl")
+    model_path = Path("models/churn_model.pkl")
     if not model_path.exists():
         pytest.skip("Model artifact not found. Run training first.")
         

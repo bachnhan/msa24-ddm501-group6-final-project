@@ -1,6 +1,6 @@
 # =============================================================================
 # Grafana Data Source Provisioning
-# DDM501 - Lab 2: Monitoring & Production Deployment
+# DDM501 - Final Project
 #
 # This file automatically configures Prometheus as a data source in Grafana.
 # =============================================================================

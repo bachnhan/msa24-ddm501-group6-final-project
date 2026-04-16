@@ -1,6 +1,6 @@
 # =============================================================================
 # Docker Compose - Full ML Production Stack
-# DDM501 - Final Project: MovieLens Recommendation System
+# DDM501 - Final Project: Customer Churn Prediction System
 #
 # Services:
 # - api: FastAPI application with ML metrics
@@ -14,11 +14,11 @@
 
 services:
   # ===========================================================================
-  # Movie Rating API
+  # Customer Churn API
   # ===========================================================================
   api:
     build: .
-    container_name: movie-rating-api
+    container_name: customer-churn-api
     ports:
       - "8000:8000"
     volumes:

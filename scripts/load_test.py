@@ -1,5 +1,5 @@
 """
-Load Testing Script for Movie Rating API.
+Load Testing Script for Customer Churn API.
 
 This script generates load on the API to test metrics collection
 and visualization in Grafana.
@@ -28,17 +28,26 @@ def make_single_prediction() -> Tuple[bool, float]:
     Returns:
         Tuple of (success: bool, latency_ms: float)
     """
-    # Generate random user and movie IDs
-    # MovieLens 100K has users 1-943 and movies 1-1682
-    user_id = str(random.randint(1, 943))
-    movie_id = str(random.randint(1, 1682))
+    # Generate random churn features
+    payload = {
+        "age": random.randint(18, 70),
+        "gender": random.choice(["Male", "Female"]),
+        "tenure": random.randint(1, 72),
+        "usage_frequency": random.randint(1, 30),
+        "support_calls": random.randint(0, 10),
+        "payment_delay": random.randint(0, 30),
+        "subscription_type": random.choice(["Basic", "Standard", "Premium"]),
+        "contract_length": random.choice(["Monthly", "Annual"]),
+        "total_spend": round(random.uniform(100.0, 5000.0), 2),
+        "last_interaction": random.randint(0, 31)
+    }
     
     start_time = time.time()
     
     try:
         response = requests.post(
             f"{API_URL}/predict",
-            json={"user_id": user_id, "movie_id": movie_id},
+            json=payload,
             timeout=5
         )
         latency_ms = (time.time() - start_time) * 1000
@@ -58,13 +67,20 @@ def make_batch_prediction(batch_size: int = 10) -> Tuple[bool, float]:
     Returns:
         Tuple of (success: bool, latency_ms: float)
     """
-    predictions = [
-        {
-            "user_id": str(random.randint(1, 943)),
-            "movie_id": str(random.randint(1, 1682))
-        }
-        for _ in range(batch_size)
-    ]
+    predictions = []
+    for _ in range(batch_size):
+        predictions.append({
+            "age": random.randint(18, 70),
+            "gender": random.choice(["Male", "Female"]),
+            "tenure": random.randint(1, 72),
+            "usage_frequency": random.randint(1, 30),
+            "support_calls": random.randint(0, 10),
+            "payment_delay": random.randint(0, 30),
+            "subscription_type": random.choice(["Basic", "Standard", "Premium"]),
+            "contract_length": random.choice(["Monthly", "Annual"]),
+            "total_spend": round(random.uniform(100.0, 5000.0), 2),
+            "last_interaction": random.randint(0, 31)
+        })
     
     start_time = time.time()
     
@@ -101,7 +117,7 @@ def run_load_test(duration: int = 60, workers: int = 10, batch_mode: bool = Fals
         batch_mode: If True, use batch predictions
     """
     print("=" * 60)
-    print("Load Test for Movie Rating API")
+    print("Load Test for Customer Churn API")
     print("=" * 60)
     print(f"Duration: {duration}s")
     print(f"Workers: {workers}")
@@ -285,7 +301,7 @@ def run_spike_test(normal_workers: int = 5, spike_workers: int = 100, spike_dura
 # =============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Load test the Movie Rating API")
+    parser = argparse.ArgumentParser(description="Load test the Customer Churn API")
     parser.add_argument("--duration", type=int, default=60, help="Test duration in seconds")
     parser.add_argument("--workers", type=int, default=10, help="Number of concurrent workers")
     parser.add_argument("--batch", action="store_true", help="Use batch predictions")

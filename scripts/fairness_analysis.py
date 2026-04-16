@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def run_fairness_analysis(model_path="models/svd_model.pkl"):
+def run_fairness_analysis(model_path="models/churn_model.pkl"):
     if not Path(model_path).exists():
         print("Model not found.")
         return
