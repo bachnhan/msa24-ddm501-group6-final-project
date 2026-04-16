@@ -116,6 +116,9 @@ Our system implements a full-stack observability suite for reliable production s
 ---
 
 ## 📚 Documentation
+- [Problem Statement & Business Context](docs/ProblemStatement.md)
+- [Requirements & Use Cases](docs/Requirements.md)
+- [Success Metrics](docs/SuccessMetrics.md)
 - [Architecture & Trade-offs](ARCHITECTURE.md)
 - [Fairness Analysis Report](scripts/fairness_analysis.py)
 - [Model Explainability Guide](scripts/explain_model.py)
