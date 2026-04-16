@@ -1,106 +1,301 @@
-# System Architecture & Design Specification
+# TELCO CUSTOMER CHURN PREDICTION SYSTEM
+## System Design & Architecture
 
-This document provides a comprehensive breakdown of the Customer Churn Prediction System's architecture, data flows, and technical justifications.
+**Course:** DDM501 - AI in Production: From Models to Systems
+**Dataset:** IBM Telco Customer Churn
+**Prepared by:** [Your Name]
 
-## 1. High-Level System Architecture
+---
 
-Our system is built on a containerized microservices architecture optimized for low-latency inference and high observability.
+## 1. HIGH-LEVEL ARCHITECTURE
 
-```mermaid
-graph TD
-    subgraph "External Layer"
-        User([CRM / Business App])
-    end
+The system follows a **layered ML platform architecture** composed of five independent but integrated layers:
 
-    subgraph "Application Tier (Docker)"
-        LB[API Gateway / FastAPI]
-        subgraph "ML Engine"
-            PP[Preprocessor Pipeline]
-            RF[Random Forest Classifier]
-        end
-        GU[Output Guardrails]
-    end
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     [1] DATA LAYER                                  │
+│   Telco CSV  ──►  Preprocessing  ──►  Feature Store (versioned)     │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│                  [2] ML TRAINING PIPELINE                           │
+│   Feature Engineering ──► Model Training ──► MLflow Tracking        │
+│                                    └──────► Model Registry          │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │  (champion model artifact)
+┌────────────────────────────▼────────────────────────────────────────┐
+│                  [3] SERVING LAYER                                  │
+│   FastAPI  ──►  /predict  ──►  SHAP Explainer  ──►  Response JSON  │
+│   (Docker)     /predict/batch                                        │
+│                /health                                               │
+└──────────────┬─────────────────────────────────────────────────────┘
+               │ (exposes /metrics)
+┌──────────────▼─────────────────────────────────────────────────────┐
+│                 [4] MONITORING LAYER                                │
+│   Prometheus ──► Grafana Dashboards ──► Alertmanager               │
+│   (scrape)       Business | Model | System panels                   │
+└─────────────────────────────────────────────────────────────────────┘
 
-    subgraph "State & Artifacts"
-        ARTIFACTS[(Model Registry .pkl)]
-        LOGS[(Prometheus TSDB)]
-    end
-
-    subgraph "Observability & Lifecycle"
-        MLF[MLflow Experiment Tracking]
-        GRAF[Grafana Dashboards]
-        GHA[GitHub Actions CI/CD]
-    end
-
-    User -->|POST /predict| LB
-    LB --> PP
-    PP --> RF
-    RF --> GU
-    GU -->|Result| LB
-    LB -.->|Metrics| LOGS
-    LOGS --> GRAF
-    GHA -->|Build & Test| LB
-    MLF -->|Track Training| ARTIFACTS
+┌─────────────────────────────────────────────────────────────────────┐
+│                   [5] CI/CD LAYER                                   │
+│   GitHub Actions: Lint ──► Test ──► Build ──► Validate ──► Deploy  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 2. Component Design & Responsibilities
+---
+
+## 2. SYSTEM ARCHITECTURE DIAGRAM
+
+```mermaid
+graph TB
+    subgraph DATA["🗄️ Data Layer"]
+        CSV["📄 IBM Telco CSV\n(7,043 records)"]
+        PREP["⚙️ Data Preprocessing\n• Handle TotalCharges nulls\n• One-Hot Encoding\n• StandardScaler"]
+        CSV --> PREP
+    end
+
+    subgraph TRAINING["🧪 ML Training Pipeline"]
+        FE["🔧 Feature Engineering\n• Tenure bins\n• Charge ratios\n• Service bundles"]
+        TRAIN["🤖 Model Training\n• Logistic Regression\n• XGBoost ★\n• LightGBM"]
+        MLFLOW["📊 MLflow Tracking\n• params / metrics\n• artifacts\n• model registry"]
+        REGISTRY["🏆 Model Registry\n• Champion (prod)\n• Challenger (staging)"]
+        FE --> TRAIN
+        TRAIN --> MLFLOW
+        MLFLOW --> REGISTRY
+    end
+
+    subgraph SERVING["🚀 Serving Layer (Docker)"]
+        API["⚡ FastAPI\nPOST /api/v1/predict\nPOST /api/v1/predict/batch\nGET  /health\nGET  /model-info\n:8000"]
+        SHAP["🔍 SHAP Explainer\nreason_codes per prediction"]
+        API --> SHAP
+    end
+
+    subgraph MONITORING["📡 Monitoring Layer (Docker)"]
+        PROM["📈 Prometheus\n:9090\nscrapes /metrics"]
+        GRAF["📊 Grafana\n:3000\n3 dashboard panels"]
+        ALERT["🔔 Alertmanager\ndrift / error alerts"]
+        PROM --> GRAF
+        PROM --> ALERT
+    end
+
+    subgraph CICD["🔄 CI/CD (GitHub Actions)"]
+        GH["GitHub\nRepository"]
+        LINT["Lint +\nType Check"]
+        TEST["Unit +\nIntegration\nTests"]
+        BUILD["Docker\nImage Build"]
+        VALIDATE["Model\nValidation\nGate"]
+        DEPLOY["Deploy\n(compose up)"]
+        GH -->|PR trigger| LINT
+        LINT --> TEST
+        TEST --> BUILD
+        BUILD --> VALIDATE
+        VALIDATE -->|pass| DEPLOY
+    end
+
+    PREP --> FE
+    REGISTRY -->|load champion| API
+    API -->|expose /metrics| PROM
+    DEPLOY -->|update| API
+```
+
+---
+
+## 3. COMPONENT DESIGN
+
+### 3.1. Data Layer
 
 | Component | Responsibility | Technology |
-|:--- |:--- |:--- |
-| **FastAPI Gateway** | Entry point for REST requests. Handles authentication (placeholder), routing, and async concurrency. | FastAPI, Uvicorn |
-| **Pydantic Validation** | Enforces strict schema validation for the 10+ customer features. | Pydantic V2 |
-| **Preprocessing Pipeline** | Handles missing value imputation, standard scaling, and one-hot encoding for categorical features. | Scikit-Learn Pipeline |
-| **Inference Engine** | Executes the Random Forest ensemble weights to produce churn probabilities. | Scikit-Learn (Random Forest) |
-| **Prometheus Exporter** | Exposes real-time system metrics (CPU/RAM) and ML metrics (Churn distribution, Error rate). | prometheus-client |
-| **Grafana** | Provides visual health monitoring and business KPIs. | Grafana OSS |
+|---|---|---|
+| **Raw Data Store** | Holds the original IBM Telco CSV | Local filesystem / Git LFS |
+| **Data Validator** | Schema check, null detection, value range validation | Pandera / Great Expectations |
+| **Preprocessor** | Handle `TotalCharges` whitespace, encode categoricals, scale numerics | scikit-learn Pipeline |
+| **Processed Data Store** | Versioned, split train/val/test artifacts | MLflow Artifacts |
 
-## 3. Data Flow Diagram (Inference)
+**Key Design Decision:** Use a `scikit-learn Pipeline` object (combining `ColumnTransformer` + `StandardScaler`) that is serialized together with the model. This prevents **training-serving skew** — the exact same preprocessing steps applied in training are applied at inference time.
+
+---
+
+### 3.2. ML Training Pipeline
+
+| Component | Responsibility | Technology |
+|---|---|---|
+| **Feature Engineering** | Create derived features (tenure buckets, monthly-to-total charge ratio) | pandas + scikit-learn |
+| **Model Trainer** | Train multiple candidate models; apply class weights for imbalance | scikit-learn, XGBoost, LightGBM |
+| **Hyperparameter Tuner** | Optimize XGBoost parameters | Optuna or GridSearchCV |
+| **Cross-Validator** | StratifiedKFold (k=5) to prevent data leakage | scikit-learn |
+| **MLflow Tracker** | Log all params, metrics, plots, and model artifacts | MLflow |
+| **Model Registry** | Promote best model to "Champion" stage | MLflow Model Registry |
+
+**Training Pipeline Flow:**
+```
+raw CSV
+  └── DataValidator.validate()
+        └── Preprocessor.fit_transform()  ← fit on train split only
+              └── FeatureEngineer.transform()
+                    └── ModelTrainer.train_all_candidates()
+                          └── MLflowLogger.log_experiment()
+                                └── ModelRegistry.promote_champion()
+```
+
+---
+
+### 3.3. Serving Layer
+
+| Component | Responsibility | Technology |
+|---|---|---|
+| **FastAPI Application** | Expose prediction endpoints, input validation, error handling | FastAPI + Uvicorn |
+| **Model Loader** | Load champion model artifact from MLflow on startup | MLflow `mlflow.sklearn.load_model()` |
+| **SHAP Explainer** | Compute and cache TreeExplainer; return top-3 feature attributions | SHAP |
+| **Prometheus Middleware** | Instrument all requests with latency and count metrics | `prometheus-fastapi-instrumentator` |
+| **Request/Response Schemas** | Pydantic models for input validation and response formatting | Pydantic v2 |
+
+**API Contracts:**
+
+```
+POST /api/v1/predict
+Request:  { "customerID": "...", "gender": "Male", "SeniorCitizen": 0,
+            "tenure": 12, "Contract": "Month-to-month", ... }
+Response: { "customerID": "...", "churn_probability": 0.82,
+            "prediction": "Churn",
+            "risk_tier": "High",
+            "reason_codes": [
+              {"feature": "Contract_Month-to-month", "impact": +0.38},
+              {"feature": "MonthlyCharges",           "impact": +0.22},
+              {"feature": "TechSupport_No",            "impact": +0.18}
+            ] }
+```
+
+---
+
+### 3.4. Monitoring Layer
+
+| Component | Responsibility | Technology |
+|---|---|---|
+| **Prometheus** | Scrape metrics from FastAPI `/metrics` endpoint every 15s | Prometheus |
+| **Grafana** | Visualize time-series metrics in 3 dashboard panels | Grafana |
+| **Alertmanager** | Fire alerts when thresholds breached (error rate, latency, drift) | Alertmanager |
+| **Drift Detector** | Compare current prediction score distribution vs. reference baseline | Evidently AI (batch) / PSI calculation |
+
+**Grafana Panel Design:**
+- **Panel 1 — Business Pulse:** High-risk customer count, revenue-at-risk gauge, weekly trend
+- **Panel 2 — Model Health:** Prediction score histogram, PSI bar chart, rolling Recall estimate
+- **Panel 3 — System Health:** API latency P50/P95/P99, error rate, request throughput, container status
+
+---
+
+### 3.5. CI/CD Pipeline
+
+| Stage | Action | Tool |
+|---|---|---|
+| **Trigger** | On push to `main` or PR opened | GitHub Actions |
+| **Lint** | `flake8`, `black --check`, `mypy` type checking | Pre-commit hooks + GA |
+| **Test** | Unit tests + Integration tests + Data quality tests | `pytest` + `pytest-cov` |
+| **Build** | Build and tag Docker image | Docker |
+| **Model Gate** | Load new model; run evaluation; must beat baseline ROC-AUC 0.85 | Custom Python script |
+| **Deploy** | `docker compose up -d` (local) or push to registry (production) | Docker Compose |
+
+---
+
+## 4. DATA FLOW DIAGRAM
 
 ```mermaid
 sequenceDiagram
-    participant C as Client (CRM)
-    participant A as API (FastAPI)
-    participant P as Preprocessor
-    participant M as RF Model
-    participant G as Guardrails
-    participant O as Observability
+    participant Client as CRM / Client
+    participant API as FastAPI :8000
+    participant Model as XGBoost Champion
+    participant SHAP as SHAP Explainer
+    participant Prom as Prometheus :9090
+    participant Graf as Grafana :3000
 
-    C->>A: POST /predict {customer_data}
-    A->>A: Pydantic Schema Check
-    alt Invalid Data
-        A-->>C: 422 Unprocessable Entity
-    else Valid Data
-        A->>P: Send raw features
-        P->>P: Scale & Encode (Pipeline)
-        P->>M: Prepared Tensors
-        M->>G: Raw Probability [0..1]
-        G->>G: Verification & Clipping
-        G-->>A: Validated Prediction
-        A->>O: Increment ML Counter
-        A-->>C: 200 OK {churn_prob, is_churn}
-    end
+    Client->>API: POST /api/v1/predict {customer features}
+    API->>API: Pydantic validation
+    API->>Model: preprocessor.transform() + model.predict_proba()
+    Model-->>API: churn_probability = 0.82
+    API->>SHAP: explainer.shap_values(customer_features)
+    SHAP-->>API: top 3 feature attributions
+    API-->>Client: {probability, prediction, risk_tier, reason_codes}
+    API->>Prom: increment request_count, record latency
+    Prom->>Graf: scrape /metrics every 15s
+    Graf->>Graf: update dashboards
 ```
 
-## 4. Technology Stack Justification
+**Edge Cases Handled:**
 
-| Choice | Justification |
-|:--- |:--- |
-| **Python 3.9** | Industry standard for ML with mature library support. |
-| **FastAPI** | High performance, type-safe, and auto-generates Swagger documentation. |
-| **Random Forest** | Non-linear model that handles mixed data types (categorical/numeric) well and provides feature importance. |
-| **MLflow** | Unifies experiment tracking, model versioning, and lifecycle management. |
-| **Docker Compose** | Simplifies multi-service orchestration (API + Monitoring) for localized production environments. |
+| Edge Case | Handling |
+|---|---|
+| Missing feature in request | Pydantic returns 422 with field-level error message |
+| Model file not found on startup | Application fails fast with clear error log; health check returns 503 |
+| SHAP computation timeout | SHAP result excluded; prediction still returned with `reason_codes: null` |
+| Batch request > 1,000 records | Returns 400: "Batch size limit exceeded. Max: 1,000 per request." |
 
-## 5. Trade-offs Analysis
+---
 
-### A. Scalability
-- **Decision**: Stateless API design.
-- **Trade-off**: Requires an external load balancer (like Nginx) to scale horizontally. Complexity increases slightly as stickiness is not preserved, but availability is maximized.
+## 5. TECHNOLOGY STACK JUSTIFICATION
 
-### B. Cost
-- **Decision**: Open Source Stack (Prometheus/Grafana/FastAPI).
-- **Trade-off**: Zero licensing costs. However, operational cost involves managing the overhead of the monitoring stack (TSDB storage).
+| Layer | Technology | Why Chosen | Alternative Considered |
+|---|---|---|---|
+| **API Framework** | FastAPI | Async-native, automatic OpenAPI docs, Pydantic validation, fastest Python framework | Flask (no async, manual docs), Django REST (too heavy) |
+| **ML Models** | XGBoost / LightGBM | Best-in-class for tabular data; built-in `scale_pos_weight` for imbalance; fast inference | Neural networks (overkill for 21 features), LR only (underpowers) |
+| **Experiment Tracking** | MLflow | Open-source, self-hosted, integrates with scikit-learn natively; course requirement | Weights & Biases (cloud-only free tier limits), Neptune (paid) |
+| **Explainability** | SHAP | Model-agnostic TreeExplainer is fast for XGBoost; produces additive, consistent attributions | LIME (slower, less consistent), ELI5 (deprecated) |
+| **Containerization** | Docker + Compose | Reproducible across environments; required by course rubric; simplest multi-service orchestration | Kubernetes (over-engineered for this scale), bare processes |
+| **Monitoring** | Prometheus + Grafana | Industry standard; pre-built FastAPI exporter; Grafana has rich visualization; course requirement | Datadog (paid), CloudWatch (AWS-only) |
+| **CI/CD** | GitHub Actions | Free for public repos; YAML-based; native Docker support; course requirement | Jenkins (requires self-hosted), CircleCI (paid features) |
 
-### C. Complexity
-- **Decision**: Monolithic Repository for API and Training.
-- **Trade-off**: Easier for small teams to manage (CI/CD simplicity). Less suitable for hyper-scale teams where micro-repos are preferred.
+---
+
+## 6. TRADE-OFF ANALYSIS
+
+### 6.1. Scalability vs. Complexity
+
+| Decision | Chosen | Trade-off |
+|---|---|---|
+| **Single-container API** vs. microservices | Single FastAPI container | ✅ Simple deployment, easier debugging. ❌ Cannot scale individual components independently. Acceptable for course project and ≤ 10 req/s load. |
+| **Synchronous inference** vs. async queue | Synchronous (request-response) | ✅ Simple implementation, low latency for single predictions. ❌ Blocks on long batch jobs. Mitigated by separate `/predict/batch` endpoint with timeout. |
+| **Local MLflow** vs. cloud MLflow | Local (Docker) | ✅ No external dependencies, fully reproducible. ❌ Not scalable to team of 5+. Acceptable for 3–4 member team. |
+
+### 6.2. Model Performance vs. Serving Latency
+
+| Decision | Impact |
+|---|---|
+| **SHAP on every prediction** | Adds ~30–50ms per request. Acceptable (<150ms SLA). If latency is critical, SHAP can be computed async and cached per customer. |
+| **XGBoost over TabNet** | XGBoost is 10× faster at inference with comparable accuracy on tabular data. TabNet is relegated to experimental role. |
+| **No model caching by customerID** | Simplifies implementation. For production, a Redis cache of recent predictions would reduce redundant computation. |
+
+### 6.3. Cost vs. Observability
+
+| Decision | Impact |
+|---|---|
+| **Self-hosted Prometheus+Grafana** | Zero cost, full control. Requires manual setup vs. managed solutions. |
+| **No distributed tracing** | Removed Jaeger/Zipkin to reduce complexity. API logs provide sufficient debugging for this scale. |
+
+---
+
+## 7. DOCKER COMPOSE SERVICE MAP
+
+```yaml
+# docker-compose.yml — Service Overview
+services:
+  api:          # FastAPI prediction service
+    port: 8000
+    depends_on: [mlflow]
+    healthcheck: GET /health
+
+  mlflow:       # MLflow tracking server + model registry
+    port: 5000
+    volumes: [./mlruns, ./artifacts]
+
+  prometheus:   # Metrics collection
+    port: 9090
+    scrape: api:8000/metrics (every 15s)
+
+  grafana:      # Dashboards
+    port: 3000
+    depends_on: [prometheus]
+
+  # Optional: alertmanager (port 9093)
+```
+
+---
+
+*Document version: 1.0 | Created: 2026-04-15 | Course: DDM501 Final Project*
