@@ -6,7 +6,6 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.metrics import mean_absolute_error
 
 def run_fairness_analysis(model_path="models/svd_model.pkl"):
     if not Path(model_path).exists():
