@@ -35,7 +35,7 @@ graph TD
 4. **Prediction**: Ensemble model generates churn probability.
 5. **Guardrail**: System verifies output constraints and logs to Prometheus.
 
-For detailed technology justifications and trade-off analysis, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For detailed technology justifications and trade-off analysis, see [Architecture & Trade-offs](docs/ARCHITECTURE.md).
 
 ---
 
@@ -88,6 +88,14 @@ python scripts/explain_model.py
 - **Explainability**: Uses Global Feature Importance to identify top churn drivers.
 - **Fairness**: Monitors error rate parity between different user demographics.
 - **Guardrails**: Validates input ranges (e.g., age, tenure) to prevent out-of-distribution errors.
+
+---
+
+## 📚 Documentation
+- [Architecture & Trade-offs](docs/ARCHITECTURE.md)
+- [Fairness Analysis Report](scripts/fairness_analysis.py)
+- [Model Explainability Guide](scripts/explain_model.py)
+- [Contribution Roles](CONTRIBUTING.md)
 
 ---
 © 2026 DDM501 Group 6 - AI in Production
