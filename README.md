@@ -84,6 +84,30 @@ python scripts/explain_model.py
 
 ---
 
+## 📊 Monitoring & Observability
+
+Our system implements a full-stack observability suite for reliable production serving.
+
+### Service Access Links
+| Service | URL | Default Credentials |
+|:--- |:--- |:--- |
+| **Prediction API** | [http://localhost:8000](http://localhost:8000) | N/A |
+| **API Docs (Swagger)**| [http://localhost:8000/docs](http://localhost:8000/docs) | N/A |
+| **Prometheus** | [http://localhost:9090](http://localhost:9090) | N/A |
+| **Grafana** | [http://localhost:3000](http://localhost:3000) | `admin` / `admin` |
+
+### Dashboards
+- **System Metrics**: Real-time traffic analysis, error rates, and infrastructure (CPU/RAM) health.
+- **ML Metrics**: Prediction probability distribution, model versioning, and latency quantiles (P50, P95, P99).
+
+### Alerting Rules (C3)
+1. **High Error Rate**: Triggered if 5xx responses exceed 5% within 1 minute.
+2. **Slow Latency**: Triggered if P95 response time exceeds 500ms.
+3. **Prediction Anomaly**: Detects drifts in median churn probability (>0.2 shift).
+4. **Service Outage**: Immediate alert if the `churn-api` runner stops.
+
+---
+
 ## ⚖️ Responsible AI
 - **Explainability**: Uses Global Feature Importance to identify top churn drivers.
 - **Fairness**: Monitors error rate parity between different user demographics.

@@ -69,8 +69,8 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "max": 5,
-          "min": 1,
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -358,7 +358,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "ML Metrics Dashboard",
+  "title": "Customer Churn ML Dashboard",
   "uid": "ml-metrics",
   "version": 1,
   "weekStart": ""

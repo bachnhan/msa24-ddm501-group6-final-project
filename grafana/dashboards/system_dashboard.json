@@ -370,6 +370,23 @@
       ],
       "title": "Requests by Endpoint",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)",
+          "legendFormat": "CPU Usage (%)",
+          "refId": "A"
+        }
+      ],
+      "title": "System CPU Usage (%)",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
