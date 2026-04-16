@@ -3,7 +3,7 @@
 
 **Course:** DDM501 - AI in Production: From Models to Systems
 **Dataset:** IBM Telco Customer Churn
-**Prepared by:** [Your Name]
+**Prepared by:** Lê Huỳnh Trang
 
 ---
 

@@ -5,7 +5,7 @@
 **Course:** DDM501 - AI in Production: From Models to Systems
 **Topic:** Customer Churn Prediction (Focus: Telecommunications Industry)
 **Dataset:** IBM Telco Customer Churn
-**Prepared by:** [Your Name]
+**Prepared by:** Lê Huỳnh Trang
 
 ---
 
