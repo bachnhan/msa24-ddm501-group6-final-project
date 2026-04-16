@@ -35,7 +35,7 @@ graph TD
 4. **Prediction**: Ensemble model generates churn probability.
 5. **Guardrail**: System verifies output constraints and logs to Prometheus.
 
-For detailed technology justifications and trade-off analysis, see [Architecture & Trade-offs](docs/ARCHITECTURE.md).
+For detailed technology justifications and trade-off analysis, see [Architecture & Trade-offs](ARCHITECTURE.md).
 
 ---
 
@@ -92,7 +92,7 @@ python scripts/explain_model.py
 ---
 
 ## 📚 Documentation
-- [Architecture & Trade-offs](docs/ARCHITECTURE.md)
+- [Architecture & Trade-offs](ARCHITECTURE.md)
 - [Fairness Analysis Report](scripts/fairness_analysis.py)
 - [Model Explainability Guide](scripts/explain_model.py)
 - [Contribution Roles](CONTRIBUTING.md)
