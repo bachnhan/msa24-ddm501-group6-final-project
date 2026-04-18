@@ -87,6 +87,12 @@ def train_and_register():
             search.fit(X_train, y_train)
             best_model = search.best_estimator_
             
+            # --- Analysis ---
+            y_pred = best_model.predict(X_test)
+            print(f"🏆 Results for {m_type.upper()}:")
+            print(classification_report(y_test, y_pred))
+            print(f"Accuracy: {accuracy_score(y_test, y_pred):.2%}")
+
             # --- RESPONSIBLE AI: FAIRNESS AUDIT (Rubric 3.1.5) ---
             print(f"⚖️ Performing Fairness Audit (Gender)...")
             audit_df = X_test.copy()

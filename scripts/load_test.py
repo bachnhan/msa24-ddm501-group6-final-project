@@ -11,18 +11,29 @@ CONCURRENT_USERS = 10
 # ---------------------
 
 def generate_random_customer():
-    """Generates random data for prediction."""
+    """Generates random Telco-style data for prediction."""
+    monthly_charges = round(random.uniform(20, 120), 2)
+    tenure = random.randint(1, 72)
     return {
-        "age": random.randint(18, 90),
         "gender": random.choice(["Male", "Female"]),
-        "tenure": random.randint(1, 60),
-        "usage_frequency": random.randint(1, 30),
-        "support_calls": random.randint(0, 10),
-        "payment_delay": random.randint(0, 20),
-        "subscription_type": random.choice(["Basic", "Standard", "Premium"]),
-        "contract_length": random.choice(["Monthly", "Quarterly", "Annual"]),
-        "total_spend": round(random.uniform(50, 2000), 2),
-        "last_interaction": random.randint(1, 30)
+        "seniorcitizen": random.choice([0, 1]),
+        "partner": random.choice(["Yes", "No"]),
+        "dependents": random.choice(["Yes", "No"]),
+        "tenure": tenure,
+        "phoneservice": random.choice(["Yes", "No"]),
+        "multiplelines": random.choice(["No phone service", "No", "Yes"]),
+        "internetservice": random.choice(["DSL", "Fiber optic", "No"]),
+        "onlinesecurity": random.choice(["No", "Yes", "No internet service"]),
+        "onlinebackup": random.choice(["No", "Yes", "No internet service"]),
+        "deviceprotection": random.choice(["No", "Yes", "No internet service"]),
+        "techsupport": random.choice(["No", "Yes", "No internet service"]),
+        "streamingtv": random.choice(["No", "Yes", "No internet service"]),
+        "streamingmovies": random.choice(["No", "Yes", "No internet service"]),
+        "contract": random.choice(["Month-to-month", "One year", "Two year"]),
+        "paperlessbilling": random.choice(["Yes", "No"]),
+        "paymentmethod": random.choice(["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"]),
+        "monthlycharges": monthly_charges,
+        "totalcharges": round(monthly_charges * tenure, 2)
     }
 
 def send_request():
