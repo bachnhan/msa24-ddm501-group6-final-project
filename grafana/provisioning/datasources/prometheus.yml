@@ -12,9 +12,9 @@ datasources:
     type: prometheus
     uid: prometheus
     access: proxy
-    url: ${PROMETHEUS_URL:-http://prometheus:9090}
+    url: https://customer-churn-prometheus.onrender.com
     isDefault: true
-    editable: false
+    editable: true
     jsonData:
       timeInterval: "15s"
       httpMethod: POST
