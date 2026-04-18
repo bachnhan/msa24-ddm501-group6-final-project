@@ -107,18 +107,18 @@ async def predict(request: PredictionRequest):
         data = request.model_dump()
         
         # --- RESPONSIBLE AI: API GUARDRAILS (Rubric 3.1.5) ---
-        if data['age'] < 18 or data['age'] > 120:
-            raise HTTPException(status_code=400, detail="Guardrail: Age must be between 18 and 120.")
+        if data['tenure'] < 0 or data['tenure'] > 120:
+            raise HTTPException(status_code=400, detail="Guardrail: Tenure must be between 0 and 120 months.")
         
-        if data['total_spend'] < 0:
-            raise HTTPException(status_code=400, detail="Guardrail: Total spend cannot be negative.")
+        if data['totalcharges'] < 0:
+            raise HTTPException(status_code=400, detail="Guardrail: Total charges cannot be negative.")
 
         if data['gender'] not in ['Male', 'Female']:
             # Example of handling bias/privacy: map unknown or sensitive identifiers to a baseline
             logger.warning(f"Unexpected gender value: {data['gender']}. This may lead to biased results.")
         # --------------------------------------------------
 
-        is_churn, prob, latency_ms = model.predict_with_latency(data)
+        is_churn, prob, reason_codes, latency_ms = model.predict_with_latency(data)
         
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
         # Log prediction distribution by gender to track bias in real-time
@@ -132,6 +132,7 @@ async def predict(request: PredictionRequest):
         return PredictionResponse(
             churn_probability=round(prob, 4),
             is_churn=is_churn,
+            reason_codes=reason_codes,
             model_version=model.loaded_version,
             latency_ms=round(latency_ms, 3)
         )
@@ -152,11 +153,12 @@ async def predict_batch(request: BatchPredictionRequest):
         total_latency = 0
         
         for item in request.predictions:
-            is_churn, prob, latency_ms = model.predict_with_latency(item.model_dump())
+            is_churn, prob, reason_codes, latency_ms = model.predict_with_latency(item.model_dump())
             total_latency += latency_ms
             results.append(PredictionResponse(
                 churn_probability=round(prob, 4),
                 is_churn=is_churn,
+                reason_codes=reason_codes,
                 model_version=model.loaded_version,
                 latency_ms=round(latency_ms, 3)
             ))

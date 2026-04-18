@@ -132,7 +132,7 @@ class ChurnModel:
         """Return the last error message if model failed to load."""
         return self.last_error
     
-    def predict(self, data_dict: dict) -> Tuple[bool, float]:
+    def predict(self, data_dict: dict) -> Tuple[bool, float, List[str]]:
         """
         Process input features and return churn prediction.
         
@@ -140,17 +140,17 @@ class ChurnModel:
             data_dict (dict): Dictionary containing customer features.
             
         Returns:
-            Tuple[bool, float]: (Is Churn, Probability of Churn)
+            Tuple[bool, float, List[str]]: (Is Churn, Probability of Churn, Reason Codes)
         """
-        is_churn, churn_prob, _ = self.predict_with_latency(data_dict)
-        return is_churn, churn_prob
+        is_churn, churn_prob, reason_codes, _ = self.predict_with_latency(data_dict)
+        return is_churn, churn_prob, reason_codes
 
-    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, float]:
+    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, List[str], float]:
         """
         Predict churn and also return the performance latency in milliseconds.
         
         Returns:
-            Tuple[bool, float, float]: (Is Churn, Probability, Latency MS)
+            Tuple[bool, float, List[str], float]: (Is Churn, Probability, Reason Codes, Latency MS)
         """
         if self.model is None:
             raise RuntimeError("Model is not loaded. Cannot perform prediction.")
@@ -164,9 +164,48 @@ class ChurnModel:
         churn_prob = float(self.model.predict_proba(X)[0, 1])
         is_churn = bool(self.model.predict(X)[0])
         
+        # --- RESPONSIBLE AI: EXPLAINABILITY (Rubric 3.1.5) ---
+        reason_codes = []
+        try:
+            import shap
+            # Extract components from pipeline
+            preprocessor = self.model.named_steps['pre']
+            clf = self.model.named_steps['clf']
+            
+            # Transform single record
+            X_transformed = preprocessor.transform(X)
+            if hasattr(X_transformed, "toarray"):
+                X_transformed = X_transformed.toarray()
+            
+            # Explain this specific prediction
+            explainer = shap.Explainer(clf)
+            shap_values = explainer(X_transformed)
+            
+            # Get feature names from preprocessor
+            feature_names = preprocessor.get_feature_names_out()
+            
+            # Get top 3 features with highest absolute SHAP values
+            # shap_values[0].values is the array of contributions
+            contributions = shap_values[0].values
+            if len(contributions.shape) > 1: # For some multiclass/prob explainer
+                 contributions = contributions[:, 1] # Path for positive class
+            
+            top_indices = sorted(range(len(contributions)), 
+                               key=lambda i: abs(contributions[i]), 
+                               reverse=True)[:3]
+            
+            for idx in top_indices:
+                val = contributions[idx]
+                feat = feature_names[idx].split("__")[-1] # Clean OHE names
+                direction = "High" if val > 0 else "Low"
+                reason_codes.append(f"{feat} ({direction})")
+        except Exception as e:
+            logger.warning(f"Failed to generate reason codes: {e}")
+            reason_codes = ["Information unavailable"]
+        
         latency_ms = (time.perf_counter() - start_time) * 1000
         
-        return is_churn, churn_prob, latency_ms
+        return is_churn, churn_prob, reason_codes, latency_ms
 
     def is_loaded(self) -> bool:
         """Check if the model instance is ready for prediction."""

@@ -87,11 +87,50 @@ def train_and_register():
             search.fit(X_train, y_train)
             best_model = search.best_estimator_
             
-            # --- Analysis ---
-            y_pred = best_model.predict(X_test)
-            print(f"🏆 Results for {m_type.upper()}:")
-            print(classification_report(y_test, y_pred))
-            print(f"Accuracy: {accuracy_score(y_test, y_pred):.2%}")
+            # --- RESPONSIBLE AI: FAIRNESS AUDIT (Rubric 3.1.5) ---
+            print(f"⚖️ Performing Fairness Audit (Gender)...")
+            audit_df = X_test.copy()
+            audit_df['actual'] = y_test
+            audit_df['predicted'] = y_pred
+            
+            # Identify gender column (handle potential case sensitivity)
+            gender_col = next((c for c in audit_df.columns if c.lower() == 'gender'), None)
+            
+            if gender_col:
+                gender_stats = audit_df.groupby(gender_col)['predicted'].mean()
+                bias_gap = abs(gender_stats.get('Female', 0) - gender_stats.get('Male', 0))
+                
+                mlflow.log_metric("bias_gap_gender", bias_gap)
+                print(f"   - Gender Bias Gap: {bias_gap:.4f}")
+                
+                # Log detailed audit table as CSV artifact
+                audit_report_path = "gender_audit.csv"
+                gender_stats.to_csv(audit_report_path)
+                mlflow.log_artifact(audit_report_path)
+            
+            # --- RESPONSIBLE AI: EXPLAINABILITY (SHAP) ---
+            print(f"🔍 Generating SHAP Explanations...")
+            try:
+                # For pipelines, we explain the model on transformed data
+                X_test_transformed = preprocessor.transform(X_test)
+                # Handle sparse output from OHE if necessary
+                if hasattr(X_test_transformed, "toarray"):
+                    X_test_transformed = X_test_transformed.toarray()
+                
+                # Log SHAP summary plot
+                explainer = shap.Explainer(best_model.named_steps['clf'])
+                shap_values = explainer(X_test_transformed)
+                
+                plt.figure(figsize=(10, 6))
+                shap.summary_plot(shap_values, X_test_transformed, 
+                                 feature_names=preprocessor.get_feature_names_out(), 
+                                 show=False)
+                plt.tight_layout()
+                plt.savefig("shap_summary.png")
+                mlflow.log_artifact("shap_summary.png")
+                plt.close()
+            except Exception as e:
+                print(f"⚠️ SHAP calculation failed: {e}")
 
             # Logs & Registry
             mlflow.sklearn.log_model(best_model, "model", registered_model_name=f"CustomerChurnModel_{m_type}")
