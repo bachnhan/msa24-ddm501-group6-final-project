@@ -130,6 +130,27 @@ async def predict_batch(request: BatchPredictionRequest):
         logger.error(f"Batch prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/model/reload", tags=["Admin"])
+async def reload_model(version_or_alias: str = "latest"):
+    """
+    Force the API to reload the model from DagsHub Registry.
+    You can provide a version number (1, 2) or an alias (Production, Champion).
+    """
+    model = get_model()
+    success = model.reload(version_or_alias)
+    
+    if success:
+        return {
+            "status": "success", 
+            "message": f"Model reloaded successfully using reference: {version_or_alias}",
+            "model_loaded": True
+        }
+    else:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to reload model: {model.get_last_error()}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

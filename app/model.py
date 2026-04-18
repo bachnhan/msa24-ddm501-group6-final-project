@@ -146,6 +146,27 @@ class ChurnModel:
         """Check if the model instance is ready for prediction."""
         return self.model is not None
 
+    def reload(self, model_ref: str = None) -> bool:
+        """
+        Reload the model from Registry with a specific reference.
+        Args:
+            model_ref (str): Version number or Alias. If None, uses environment current value.
+        Returns:
+            bool: True if reload was successful.
+        """
+        if model_ref:
+            os.environ["MLFLOW_MODEL_VERSION"] = model_ref
+        
+        # Re-run the internal load logic
+        self._load_model()
+        
+        # Record the last reload time in metrics if available
+        if self.model is not None:
+             if MODEL_LAST_RELOAD is not None:
+                 MODEL_LAST_RELOAD.set_to_current_time()
+             return True
+        return False
+
 # Singleton Pattern for Model Instance
 _model_instance = None
 
