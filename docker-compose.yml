@@ -56,6 +56,8 @@ services:
     environment:
       - API_TARGET=customer-churn-api:8000
       - API_SCHEME=http
+      - PROMETHEUS_TARGET=localhost:9090
+      - NODE_EXPORTER_TARGET=node-exporter:9100
     networks:
       - monitoring
 

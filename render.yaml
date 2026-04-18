@@ -28,12 +28,13 @@ services:
     dockerContext: .
     envVars:
       - key: API_TARGET
-        fromService:
-          name: customer-churn-api
-          type: web
-          property: host
+        value: "customer-churn-api-3p4j.onrender.com"
       - key: API_SCHEME
         value: "https"
+      - key: PROMETHEUS_TARGET
+        value: "localhost:10000"
+      - key: NODE_EXPORTER_TARGET
+        value: "localhost:10000"
 
   # ===========================================================================
   # 3. Grafana Dashboards
