@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import logging
+import os
 
 from app.config import (
     API_TITLE, 
@@ -17,7 +18,6 @@ from app.schemas import (
     HealthResponse,
     BatchPredictionRequest,
     BatchPredictionResponse,
-    MetricsInfo,
 )
 from app.middleware import MetricsMiddleware
 from app.metrics import count_implemented_metrics
@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Customer Churn Prediction API",
-    description="API for predicting customer churn using Random Forest with Monitoring",
+    title=API_TITLE,
+    description=API_DESCRIPTION,
     version=API_VERSION,
 )
 
@@ -80,7 +80,7 @@ async def predict(request: PredictionRequest):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
-        data = request.dict()
+        data = request.model_dump()
         
         # --- API GUARDRAIL ---
         if data['age'] < 0 or data['age'] > 120:
@@ -111,7 +111,7 @@ async def predict_batch(request: BatchPredictionRequest):
         total_latency = 0
         
         for item in request.predictions:
-            is_churn, prob, latency_ms = model.predict_with_latency(item.dict())
+            is_churn, prob, latency_ms = model.predict_with_latency(item.model_dump())
             total_latency += latency_ms
             results.append(PredictionResponse(
                 churn_probability=round(prob, 4),
