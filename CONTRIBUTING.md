@@ -5,12 +5,13 @@ This project is a collaborative effort for the **DDM501 - AI in Production** Fin
 ## 👥 Team Members
 
 ### 1. Lê Huỳnh Trang
-- **Role**: Data Scientist / ML Engineer
+- **Role**: Business Analyst / System Architect
 - **Responsibilities**:
-    - Problem definition and business context formulation.
-    - ML Pipeline development (Ingestion, Preprocessing).
-    - Responsible AI implementation: Bias analysis and fairness detection.
-    - Model explainability (interpreting SVD latent factors).
+    - Problem definition, business context formulation, and scope definition.
+    - System architecture design and technical documentation (`ARCHITECTURE.md`).
+    - Data Flow Diagram and System Design documentation.
+    - Success metrics definition across Business, Model, and System levels.
+    - Project documentation: `README.md`, `CONTRIBUTING.md`, and `docs/` structure.
 
 ### 2. Đỗ Trọng Minh Quân
 - **Role**: ML Engineer / Researcher
