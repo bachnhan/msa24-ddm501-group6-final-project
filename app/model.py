@@ -36,6 +36,7 @@ class ChurnModel:
         self.model_path = model_path
         self.model = None
         self.version = MODEL_VERSION
+        self.last_error = None
         self._load_model()
     
     def _load_model(self) -> None:
@@ -44,6 +45,7 @@ class ChurnModel:
             with open(self.model_path, "rb") as f:
                 self.model = pickle.load(f)
             logger.info(f"Churn Model loaded successfully from {self.model_path}")
+            self.last_error = None
             
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(1)
@@ -56,10 +58,14 @@ class ChurnModel:
                     'path': str(self.model_path)
                 })
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"Error loading model: {e}")
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(0)
             # We don't raise here to allow the API to start in a degraded state
+    
+    def get_last_error(self) -> Optional[str]:
+        return self.last_error
     
     def predict(self, data_dict: dict) -> Tuple[bool, float]:
         """

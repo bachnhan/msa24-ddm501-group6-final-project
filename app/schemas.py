@@ -26,6 +26,7 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     model_version: str
+    error: Optional[str] = None
 
 class MetricsInfo(BaseModel):
     """Metrics configuration info."""

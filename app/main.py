@@ -63,7 +63,8 @@ async def health_check():
     return HealthResponse(
         status="healthy" if model.is_loaded() else "unhealthy",
         model_loaded=model.is_loaded(),
-        model_version=MODEL_VERSION
+        model_version=MODEL_VERSION,
+        error=model.get_last_error() # New field for debugging
     )
 
 @app.get("/metrics", tags=["Monitoring"])
