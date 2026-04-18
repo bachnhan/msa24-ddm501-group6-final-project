@@ -16,16 +16,15 @@ shap==0.43.0
 matplotlib==3.9.4
 seaborn==0.13.2
 
-# Data Download
+# Data Download & Integration
 opendatasets==0.1.22
+dagshub==0.3.3
+python-dotenv==1.0.0
 
 # Validation & Data Quality
 pydantic==2.5.2
 deepchecks==0.17.5
 anywidget
-
-# Configuration
-python-dotenv==1.0.0
 
 # Monitoring
 prometheus-client==0.19.0
