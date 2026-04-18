@@ -21,12 +21,10 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code and models
 COPY app/ ./app/
 COPY scripts/ ./scripts/
-
-# Create models directory
-RUN mkdir -p models
+COPY models/ ./models/
 
 # Expose port
 EXPOSE 8000
