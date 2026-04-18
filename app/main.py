@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Depends, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import logging
+import secrets
 import os
 
 from app.config import (
@@ -32,6 +34,29 @@ app = FastAPI(
     description=API_DESCRIPTION,
     version=API_VERSION,
 )
+
+# Security for Admin features
+security = HTTPBasic()
+
+def get_admin_user(credentials: HTTPBasicCredentials = Depends(security)):
+    """Simple basic auth check for admin/admin"""
+    current_username_bytes = credentials.username.encode("utf8")
+    correct_username_bytes = b"admin"
+    is_correct_username = secrets.compare_digest(
+        current_username_bytes, correct_username_bytes
+    )
+    current_password_bytes = credentials.password.encode("utf8")
+    correct_password_bytes = b"admin"
+    is_correct_password = secrets.compare_digest(
+        current_password_bytes, correct_password_bytes
+    )
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 # Add CORS middleware
 app.add_middleware(
@@ -131,14 +156,13 @@ async def predict_batch(request: BatchPredictionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/model/reload", tags=["Admin"])
-async def reload_model(version_or_alias: str = "latest", token: str = None):
+async def reload_model(
+    version_or_alias: str = "latest", 
+    admin_user: str = Depends(get_admin_user)
+):
     """
-    Force the API to reload the model. Requires ADMIN_TOKEN for security.
+    Force the API to reload the model from the Registry.
     """
-    # Security Check
-    admin_token = os.getenv("ADMIN_TOKEN")
-    if admin_token and token != admin_token:
-        raise HTTPException(status_code=403, detail="Unauthorized: Invalid Admin Token")
 
     model = get_model()
     success = model.reload(version_or_alias)
@@ -156,7 +180,7 @@ async def reload_model(version_or_alias: str = "latest", token: str = None):
         )
 
 @app.get("/admin", tags=["Admin"])
-async def admin_dashboard():
+async def admin_dashboard(admin_user: str = Depends(get_admin_user)):
     """Returns a simple, beautiful Admin Dashboard to manage the model."""
     from fastapi.responses import HTMLResponse
     
@@ -225,14 +249,10 @@ async def admin_dashboard():
                     Reload Model Registry
                 </h2>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Version or Alias</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Target Model Version or Alias</label>
                             <input type="text" id="target-ref" value="latest" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Admin Security Token</label>
-                            <input type="password" id="admin-token" placeholder="Enter Token" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
                         </div>
                     </div>
                     <button onclick="reloadModel()" id="reload-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98]">
@@ -258,14 +278,13 @@ async def admin_dashboard():
                 const btn = document.getElementById('reload-btn');
                 const msg = document.getElementById('status-msg');
                 const ref = document.getElementById('target-ref').value;
-                const token = document.getElementById('admin-token').value;
 
                 btn.disabled = true;
                 btn.innerText = 'Communicating with MLflow Registry...';
                 msg.className = 'hidden p-4 rounded-xl text-center font-medium';
 
                 try {
-                    const res = await fetch(`/model/reload?version_or_alias=${ref}&token=${token}`, { method: 'POST' });
+                    const res = await fetch(`/model/reload?version_or_alias=${ref}`, { method: 'POST' });
                     const result = await res.json();
 
                     if (res.ok) {
