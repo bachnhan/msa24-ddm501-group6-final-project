@@ -75,29 +75,12 @@ class ChurnModel:
                 self.model = mlflow.sklearn.load_model(model_uri)
                 logger.info("Successfully loaded model from MLflow Registry.")
             else:
-                logger.warning("MLflow credentials missing. Falling back to local model.")
-                raise ValueError("Missing MLflow environment variables.")
+                raise ValueError("Missing MLflow environment variables for Registry connection.")
 
         except Exception as e:
-            logger.error(f"Failed to load from Registry: {e}")
-            # Fallback to local .pkl or .pkl.gz file
-            try:
-                if os.path.exists(self.model_path):
-                    with open(self.model_path, "rb") as f:
-                        self.model = pickle.load(f)
-                    logger.info(f"Successfully loaded model from local path: {self.model_path}")
-                elif os.path.exists(self.model_path + ".gz"):
-                    import gzip
-                    with gzip.open(self.model_path + ".gz", "rb") as f:
-                        self.model = pickle.load(f)
-                    logger.info(f"Successfully loaded compressed model from: {self.model_path}.gz")
-                else:
-                    self.last_error = f"Model file not found at {self.model_path} or .gz"
-                    logger.error(self.last_error)
-            except Exception as local_err:
-                self.last_error = f"Critical Error: {local_err}"
-                logger.error(self.last_error)
-        
+            self.last_error = f"Critical: Failed to load from Registry: {e}"
+            logger.error(self.last_error)
+    
         # Update metrics
         if self.model is not None:
             self.last_error = None

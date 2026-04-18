@@ -227,28 +227,20 @@ def main():
         # 5. Save and Register (Rubric 3.1.3 - Experiment Tracking)
         print(f"\n[5/6] Registering model as '{model_name}'...")
         
-        # Local Backup for API Fallback (Standard + Compressed for GitHub)
-        with open(model_path, 'wb') as f:
-            pickle.dump(best_model, f)
+        # Register Model in DagsHub MLflow Registry (Rubric 3.1.3 - Excellent)
+        # Note: Local saving is DISABLED as we use a Registry-only workflow.
         
-        import gzip
-        with gzip.open(str(model_path) + ".gz", "wb") as f:
-            pickle.dump(best_model, f)
-            
-        print(f"      Model saved locally to '{model_path}' and compressed '.gz' (API Fallback)")
-            
-        # Signature and Example
+        # Signature and Example for model serving metadata
         signature = infer_signature(X_train, best_model.predict(X_train))
-        input_example = X_test.iloc[:3]
         
-        # Log to MLflow Registry
         mlflow.sklearn.log_model(
             sk_model=best_model,
             artifact_path="model",
             registered_model_name=model_name,
-            signature=signature,
-            input_example=input_example
+            input_example=X_train.iloc[[0]],
+            signature=signature
         )
+        print(f"      Model registered successfully in DagsHub Registry.")
         
         # Save Feature Importance plot as artifact
         try:

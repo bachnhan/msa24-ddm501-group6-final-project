@@ -30,12 +30,11 @@ htmlcov/
 coverage.xml
 *.cover
 
-# Models (Compressed fallback for GitHub)
-models/*.pkl
-!models/*.pkl.gz
+# Models (Exclusively managed via MLflow Registry)
+models/
 !models/.gitkeep
 
-# Data (Excluded from Git as per user request)
+# Data (Exclusively managed via External Sources/DVC)
 data/
 *.csv
 
