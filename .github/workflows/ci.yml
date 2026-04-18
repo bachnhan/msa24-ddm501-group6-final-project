@@ -41,7 +41,20 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
       - name: Build Docker Image
         run: |
           docker build -t churn-prediction-api:latest .
+
+  deploy:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger API Deploy
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+      - name: Trigger Grafana Deploy
+        run: curl -X POST ${{ secrets.RENDER_GRAFANA_HOOK_URL }}
+
+      - name: Trigger Prometheus Deploy
+        run: curl -X POST ${{ secrets.RENDER_PROMETHEUS_HOOK_URL }}
