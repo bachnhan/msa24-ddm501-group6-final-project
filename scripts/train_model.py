@@ -239,21 +239,27 @@ def main():
             
             # Use small subset for SHAP speed
             explainer_data = X_test.sample(n=min(100, len(X_test)), random_state=42)
-            # We need to transform data first for the classifier to understand it
-            transformed_data = best_model.named_steps['preprocessor'].transform(explainer_data)
+            preprocessor = best_model.named_steps['preprocessor']
+            
+            # Get transformed feature names for plotting
+            feature_names = preprocessor.get_feature_names_out()
+            transformed_data = preprocessor.transform(explainer_data)
+            
+            # Convert to DataFrame with names to avoid shape mismatch in plots
+            if hasattr(transformed_data, 'toarray'):
+                transformed_data = transformed_data.toarray()
+            transformed_df = pd.DataFrame(transformed_data, columns=feature_names)
             
             # SHAP Explainer for the classifier part
             explainer = shap.TreeExplainer(best_model.named_steps['classifier'])
-            shap_values = explainer.shap_values(transformed_data)
+            shap_values = explainer.shap_values(transformed_df)
             
-            # Get transformed feature names for plotting
-            ohe = best_model.named_steps['preprocessor'].named_transformers_['cat'].named_steps['onehot']
-            cat_feature_names = ohe.get_feature_names_out(categorical_features).tolist()
-            feature_names = numeric_features + cat_feature_names
+            # Handle binary classification SHAP output
+            sv = shap_values[1] if isinstance(shap_values, list) else shap_values
 
             # Global SHAP Plot
             plt.figure(figsize=(10, 6))
-            shap.summary_plot(shap_values[1], transformed_data, feature_names=feature_names, show=False)
+            shap.summary_plot(sv, transformed_df, show=False)
             plt.title("SHAP Global Feature Impact")
             plt.tight_layout()
             plt.savefig("shap_summary.png")
