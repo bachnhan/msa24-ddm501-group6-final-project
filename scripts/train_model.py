@@ -13,6 +13,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from mlflow.models import infer_signature
 
 # Load environment variables (Local .env, .secret, or Render Secret Files)
 load_dotenv(override=True)
@@ -110,11 +111,17 @@ def main():
         with open(model_path, 'wb') as f:
             pickle.dump(model_pipeline, f)
             
-        # Register in MLflow Registry
+        # Infer signature and create input example for better UI display
+        signature = infer_signature(X_train, model_pipeline.predict(X_train))
+        input_example = X_train.iloc[:3]
+        
+        # Register in MLflow Registry with full metadata
         mlflow.sklearn.log_model(
             sk_model=model_pipeline,
             artifact_path="model",
-            registered_model_name=model_name
+            registered_model_name=model_name,
+            signature=signature,
+            input_example=input_example
         )
         print(f"      Successfully Registered Version in Registry.")
 
