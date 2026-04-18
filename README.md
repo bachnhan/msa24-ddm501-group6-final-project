@@ -65,6 +65,9 @@ cd msa24-ddm501-group6-final-project
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# 2. Configure Environment
+cp .env.example .env  # Then edit with your DagsHub credentials
 ```
 
 ### 2. Model Training
@@ -99,6 +102,12 @@ Our system implements a full-stack observability suite for reliable production s
 ### Dashboards
 - **System Metrics**: Real-time traffic analysis, error rates, and infrastructure (CPU/RAM) health.
 - **ML Metrics**: Prediction probability distribution, model versioning, and latency quantiles (P50, P95, P99).
+
+### 🏆 Model Registry (DagsHub)
+Our system uses **DagsHub** as a central Model Registry. This allows us to decouple training from serving:
+1.  **Train**: Run training locally (or in CI); model is registered to DagsHub.
+2.  **Serve**: Render API pulls the `latest` version from DagsHub on startup.
+3.  **Monitor**: Prometheus tracks performance of whichever model is currently "Live".
 
 ### Alerting Rules (C3)
 1. **High Error Rate**: Triggered if 5xx responses exceed 5% within 1 minute.

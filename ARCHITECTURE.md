@@ -144,7 +144,8 @@ raw CSV
 | Component | Responsibility | Technology |
 |---|---|---|
 | **FastAPI Application** | Expose prediction endpoints, input validation, error handling | FastAPI + Uvicorn |
-| **Model Loader** | Load champion model artifact from MLflow on startup | MLflow `mlflow.sklearn.load_model()` |
+| **Model Loader** | Load 'Latest' champion model artifact from DagsHub Registry on startup | MLflow `mlflow.sklearn.load_model()` |
+| **DagsHub Integration** | Remote hosting for MLflow Tracking and Model Registry | DagsHub |
 | **SHAP Explainer** | Compute and cache TreeExplainer; return top-3 feature attributions | SHAP |
 | **Prometheus Middleware** | Instrument all requests with latency and count metrics | `prometheus-fastapi-instrumentator` |
 | **Request/Response Schemas** | Pydantic models for input validation and response formatting | Pydantic v2 |
@@ -236,7 +237,7 @@ sequenceDiagram
 |---|---|---|---|
 | **API Framework** | FastAPI | Async-native, automatic OpenAPI docs, Pydantic validation, fastest Python framework | Flask (no async, manual docs), Django REST (too heavy) |
 | **ML Models** | XGBoost / LightGBM | Best-in-class for tabular data; built-in `scale_pos_weight` for imbalance; fast inference | Neural networks (overkill for 21 features), LR only (underpowers) |
-| **Experiment Tracking** | MLflow | Open-source, self-hosted, integrates with scikit-learn natively; course requirement | Weights & Biases (cloud-only free tier limits), Neptune (paid) |
+| **Experiment Tracking** | DagsHub (Hosted MLflow) | Cloud-hosted, eliminates the need for manual server maintenance; persistent model registry | Weights & Biases (paid tier limits), Neptune (paid) |
 | **Explainability** | SHAP | Model-agnostic TreeExplainer is fast for XGBoost; produces additive, consistent attributions | LIME (slower, less consistent), ELI5 (deprecated) |
 | **Containerization** | Docker + Compose | Reproducible across environments; required by course rubric; simplest multi-service orchestration | Kubernetes (over-engineered for this scale), bare processes |
 | **Monitoring** | Prometheus + Grafana | Industry standard; pre-built FastAPI exporter; Grafana has rich visualization; course requirement | Datadog (paid), CloudWatch (AWS-only) |
