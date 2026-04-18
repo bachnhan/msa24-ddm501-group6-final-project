@@ -52,3 +52,7 @@ outputs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Visual Artifacts
+*.png
+data_integrity_report.html
