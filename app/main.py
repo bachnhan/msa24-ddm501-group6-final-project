@@ -131,11 +131,15 @@ async def predict_batch(request: BatchPredictionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/model/reload", tags=["Admin"])
-async def reload_model(version_or_alias: str = "latest"):
+async def reload_model(version_or_alias: str = "latest", token: str = None):
     """
-    Force the API to reload the model from DagsHub Registry.
-    You can provide a version number (1, 2) or an alias (Production, Champion).
+    Force the API to reload the model. Requires ADMIN_TOKEN for security.
     """
+    # Security Check
+    admin_token = os.getenv("ADMIN_TOKEN")
+    if admin_token and token != admin_token:
+        raise HTTPException(status_code=403, detail="Unauthorized: Invalid Admin Token")
+
     model = get_model()
     success = model.reload(version_or_alias)
     
@@ -150,6 +154,142 @@ async def reload_model(version_or_alias: str = "latest"):
             status_code=500, 
             detail=f"Failed to reload model: {model.get_last_error()}"
         )
+
+@app.get("/admin", tags=["Admin"])
+async def admin_dashboard():
+    """Returns a simple, beautiful Admin Dashboard to manage the model."""
+    from fastapi.responses import HTMLResponse
+    
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>MLOps Admin Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+            body { font-family: 'Inter', sans-serif; }
+            .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        </style>
+    </head>
+    <body class="bg-slate-50 min-h-screen">
+        <div class="max-w-4xl mx-auto py-12 px-4">
+            <header class="flex justify-between items-center mb-10">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-slate-900">MLOps Control Center</h1>
+                    <p class="text-slate-500">Manage your Churn Prediction Model in real-time</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                    <span class="text-sm font-medium text-slate-600">System Healthy</span>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Status Card -->
+                <div class="glass p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Current Model Status</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-slate-800" id="current-version">Fetching...</p>
+                            <p class="text-xs text-slate-500 mt-1">Active Version/Alias</p>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-xl">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Card -->
+                <div class="glass p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">System Uptime</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-slate-800">Online</p>
+                            <p class="text-xs text-slate-500 mt-1">Ready for Predictions</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-xl">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Card -->
+            <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+                <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reload Model Registry
+                </h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Version or Alias</label>
+                            <input type="text" id="target-ref" value="latest" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Admin Security Token</label>
+                            <input type="password" id="admin-token" placeholder="Enter Token" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+                        </div>
+                    </div>
+                    <button onclick="reloadModel()" id="reload-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98]">
+                        Trigger Immediate Hot-Reload
+                    </button>
+                    <div id="status-msg" class="hidden p-4 rounded-xl text-center font-medium"></div>
+                </div>
+            </div>
+            
+            <footer class="mt-12 text-center text-slate-400 text-sm">
+                &copy; 2026 MLOps Churn Prediction System &bull; DagsHub Integrated
+            </footer>
+        </div>
+
+        <script>
+            async function fetchStatus() {
+                const res = await fetch('/health');
+                const data = await res.json();
+                document.getElementById('current-version').innerText = data.model_version || 'N/A';
+            }
+
+            async function reloadModel() {
+                const btn = document.getElementById('reload-btn');
+                const msg = document.getElementById('status-msg');
+                const ref = document.getElementById('target-ref').value;
+                const token = document.getElementById('admin-token').value;
+
+                btn.disabled = true;
+                btn.innerText = 'Communicating with MLflow Registry...';
+                msg.className = 'hidden p-4 rounded-xl text-center font-medium';
+
+                try {
+                    const res = await fetch(`/model/reload?version_or_alias=${ref}&token=${token}`, { method: 'POST' });
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        msg.innerText = result.message;
+                        msg.className = 'block p-4 rounded-xl text-center font-medium bg-green-50 text-green-700 mt-4';
+                        fetchStatus();
+                    } else {
+                        msg.innerText = 'Error: ' + (result.detail || 'Failed');
+                        msg.className = 'block p-4 rounded-xl text-center font-medium bg-red-50 text-red-700 mt-4';
+                    }
+                } catch (e) {
+                    msg.innerText = 'Network error!';
+                    msg.className = 'block p-4 rounded-xl text-center font-medium bg-red-50 text-red-700 mt-4';
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = 'Trigger Immediate Hot-Reload';
+                }
+            }
+            fetchStatus();
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
     import uvicorn
