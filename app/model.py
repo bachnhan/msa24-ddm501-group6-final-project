@@ -1,43 +1,32 @@
-"""
-ML Model wrapper for Customer Churn Prediction.
-Uses a scikit-learn pipeline for classification.
-"""
+import os
+from dotenv import load_dotenv
+
+# Load local .env file (force override to ignore old terminal exports)
+load_dotenv(override=True)
 
 import pickle
-import logging
+import gzip
 import time
-import numpy as np
+import logging
 import pandas as pd
 from pathlib import Path
 from typing import List, Tuple, Optional
-from dotenv import load_dotenv
-
-# Load local .env file
-load_dotenv()
 
 from app.config import MODEL_PATH, MODEL_VERSION
 from app.metrics import (
-    PREDICTION_COUNT,
-    PREDICTION_LATENCY,
-    PREDICTION_VALUE,
-    PREDICTION_ERRORS,
-    MODEL_LOADED,
-    MODEL_INFO,
-    MODEL_LAST_RELOAD,
+    MODEL_LOADED, 
+    MODEL_LAST_RELOAD, 
+    MODEL_INFO
 )
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class ChurnModel:
-    """
-    Wrapper class for the Customer Churn Prediction model.
-    """
+    """Predictor class for customer churn."""
     
     def __init__(self, model_path: str = MODEL_PATH):
-        self.model_path = model_path
+        # We now expect a .gz file
+        self.model_path = str(model_path) + ".gz" if not str(model_path).endswith(".gz") else str(model_path)
         self.model = None
         self.version = MODEL_VERSION
         self.last_error = None
@@ -45,101 +34,75 @@ class ChurnModel:
     
     def _load_model(self) -> None:
         """Load the trained model from disk or MLflow Registry."""
-        import os
         import mlflow
         from mlflow.tracking import MlflowClient
 
         tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+        username = os.getenv("MLFLOW_TRACKING_USERNAME")
+        password = os.getenv("MLFLOW_TRACKING_PASSWORD")
         model_name = os.getenv("MLFLOW_MODEL_NAME", "CustomerChurnModel")
         
         try:
-            if tracking_uri:
+            if tracking_uri and username and password:
+                os.environ['MLFLOW_TRACKING_USERNAME'] = username
+                os.environ['MLFLOW_TRACKING_PASSWORD'] = password
                 logger.info(f"Connecting to MLflow Registry: {tracking_uri}")
                 mlflow.set_tracking_uri(tracking_uri)
                 
                 # Fetching the 'Champion' or latest version
+                # Note: Registry usually stores uncompressed. 
+                # For this specific project flow, we prioritize the local path which we push to Git.
                 model_uri = f"models:/{model_name}/latest"
-                self.model = mlflow.sklearn.load_model(model_uri)
-                logger.info(f"Successfully loaded model from Registry: {model_uri}")
+                try:
+                    self.model = mlflow.sklearn.load_model(model_uri)
+                    logger.info(f"Successfully loaded model from Registry: {model_uri}")
+                except Exception as reg_err:
+                    logger.warning(f"Registry load failed, falling back to local compressed archive: {reg_err}")
+                    raise reg_err
             else:
-                # Fallback to local pickle
-                with open(self.model_path, "rb") as f:
-                    self.model = pickle.load(f)
-                logger.info(f"Loaded model from local path: {self.model_path}")
-            
-            self.last_error = None
-            if MODEL_LOADED is not None:
-                MODEL_LOADED.set(1)
+                raise ValueError("Registry credentials missing")
+
         except Exception as e:
-            self.last_error = str(e)
-            logger.error(f"Error loading model: {e}")
-            if MODEL_LOADED is not None:
-                MODEL_LOADED.set(0)
+            # Fallback to local compressed pickle
+            try:
+                if os.path.exists(self.model_path):
+                    with gzip.open(self.model_path, "rb") as f:
+                        self.model = pickle.load(f)
+                    logger.info(f"Loaded compressed model from local path: {self.model_path}")
+                else:
+                    # Try original path if .gz doesn't exist
+                    orig_path = self.model_path.replace(".gz", "")
+                    with open(orig_path, "rb") as f:
+                        self.model = pickle.load(f)
+                    logger.info(f"Loaded uncompressed model from local path: {orig_path}")
+            except Exception as local_err:
+                self.last_error = f"Registry error: {e}. Local error: {local_err}"
+                logger.error(f"Error loading model: {self.last_error}")
+                if MODEL_LOADED is not None:
+                    MODEL_LOADED.set(0)
+                return
+
+        self.last_error = None
+        if MODEL_LOADED is not None:
+            MODEL_LOADED.set(1)
     
     def get_last_error(self) -> Optional[str]:
         return self.last_error
     
     def predict(self, data_dict: dict) -> Tuple[bool, float]:
-        """
-        Make a churn prediction for a single customer.
-        
-        Returns:
-            Tuple of (is_churn, churn_probability)
-        """
+        """Make a churn prediction."""
         if self.model is None:
             raise RuntimeError("Model not loaded")
-        
-        start_time = time.time()
-        
-        try:
-            # Convert dictionary to DataFrame for the pipeline
-            df = pd.DataFrame([data_dict])
-            
-            # Get probability [class_0_prob, class_1_prob]
-            probs = self.model.predict_proba(df)[0]
-            churn_prob = float(probs[1])
-            is_churn = bool(churn_prob >= 0.5)
-            
-            duration = time.time() - start_time
-            
-            # Record metrics
-            if PREDICTION_COUNT is not None:
-                PREDICTION_COUNT.labels(model_version=self.version).inc()
-            if PREDICTION_LATENCY is not None:
-                PREDICTION_LATENCY.labels(model_version=self.version).observe(duration)
-            if PREDICTION_VALUE is not None:
-                PREDICTION_VALUE.labels(model_version=self.version).observe(churn_prob)
-            
-            return is_churn, churn_prob
-            
-        except Exception as e:
-            if PREDICTION_ERRORS is not None:
-                PREDICTION_ERRORS.labels(
-                    error_type=type(e).__name__,
-                    model_version=self.version
-                ).inc()
-            raise
-    
-    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, float]:
-        """Predict and return result with latency in ms."""
-        start_time = time.time()
-        is_churn, prob = self.predict(data_dict)
-        latency_ms = (time.time() - start_time) * 1000
-        return is_churn, prob, latency_ms
+        X = pd.DataFrame([data_dict])
+        churn_prob = float(self.model.predict_proba(X)[0, 1])
+        is_churn = bool(self.model.predict(X)[0])
+        return is_churn, churn_prob
 
     def is_loaded(self) -> bool:
         return self.model is not None
 
-    def get_info(self) -> dict:
-        return {
-            "version": self.version,
-            "type": "RandomForestClassifier",
-            "is_loaded": self.is_loaded(),
-            "path": self.model_path,
-        }
-
 # Singleton instance
-_model_instance: Optional[ChurnModel] = None
+_model_instance = None
 
 def get_model() -> ChurnModel:
     global _model_instance
