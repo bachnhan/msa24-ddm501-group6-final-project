@@ -27,46 +27,29 @@ rule_files:
 # Scrape configurations
 scrape_configs:
   # ==========================================================================
-  # Prometheus self-monitoring
+  # 1. Prometheus Self-Monitoring (Optional)
   # ==========================================================================
-  - job_name: 'prometheus'
+  - job_name: 'monitoring-system'
     static_configs:
-      - targets: ['localhost:9090']
-    
-    # Labels added to all metrics from this job
-    # relabel_configs:
-    #   - source_labels: [__address__]
-    #     target_label: instance
-    #     replacement: prometheus
+      - targets: ['${PROMETHEUS_TARGET:-localhost:9090}']
 
   # ==========================================================================
+  # 2. Customer Churn API Metrics (Primary)
   # ==========================================================================
-  # Requirements:
-  # - Job name: 'customer-churn-api'
-  # - Target: 'api:8000' (Docker service name)
-  # - Metrics path: '/metrics'
-  # - Scrape interval: 10s (more frequent than default)
-  
   - job_name: 'customer-churn-api'
     metrics_path: '/metrics'
     scheme: '${API_SCHEME}'
     static_configs:
       - targets: ['${API_TARGET}']
     scrape_interval: 10s
-    
-    # Relabeling to ensure consistent service label
     relabel_configs:
       - source_labels: [__address__]
         target_label: service
         replacement: customer-churn-api
 
   # ==========================================================================
-  # Node Exporter for system metrics
+  # 3. Node Exporter (System Metrics)
+  # ==========================================================================
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['node-exporter:9100']
-
-  # Example: Docker metrics
-  # - job_name: 'docker'
-  #   static_configs:
-  #     - targets: ['docker-host:9323']
+      - targets: ['${NODE_EXPORTER_TARGET:-node-exporter:9100}']
