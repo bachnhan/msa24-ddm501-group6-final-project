@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 import mlflow
 import mlflow.sklearn
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -14,6 +15,13 @@ from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 def main():
     """Train Customer Churn model with MLflow tracking."""
+    # Configure DagsHub Tracking
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    model_name = os.getenv("MLFLOW_MODEL_NAME", "CustomerChurnModel")
+    
+    if tracking_uri:
+        print(f"[INFO] Using MLflow Remote: {tracking_uri}")
+        mlflow.set_tracking_uri(tracking_uri)
     
     print("=" * 60)
     print("Customer Churn Model Training with MLflow")
@@ -27,10 +35,8 @@ def main():
     mlflow.set_experiment("Customer_Churn_Prediction")
     
     with mlflow.start_run():
-        # Load Sample Data (Simulating the Kaggle dataset structure)
+        # Load Sample Data
         print("\n[1/4] Loading Customer Churn dataset...")
-        
-        # Creating synthetic data to match the Kaggle schema for demonstration
         data_size = 1000
         data = {
             'age': np.random.randint(18, 70, data_size),
@@ -46,10 +52,8 @@ def main():
             'churn': np.random.choice([0, 1], data_size)
         }
         df = pd.DataFrame(data)
-        
         X = df.drop('churn', axis=1)
         y = df['churn']
-        
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
         # Preprocessing
@@ -60,55 +64,42 @@ def main():
             ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler())
         ])
-        
         categorical_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
             ('onehot', OneHotEncoder(handle_unknown='ignore'))
         ])
-        
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features),
-                ('cat', categorical_transformer, categorical_features)
-            ])
-        
-        # Pipeline
-        n_estimators = 100
-        max_depth = 10
-        model_pipeline = Pipeline(steps=[
-            ('preprocessor', preprocessor),
-            ('classifier', RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42))
+        preprocessor = ColumnTransformer(transformers=[
+            ('num', numeric_transformer, numeric_features),
+            ('cat', categorical_transformer, categorical_features)
         ])
         
-        # Log params
-        mlflow.log_params({
-            "n_estimators": n_estimators,
-            "max_depth": max_depth,
-            "numeric_features": len(numeric_features),
-            "categorical_features": len(categorical_features)
-        })
+        # Pipeline
+        model_pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('classifier', RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42))
+        ])
         
         print("\n[2/4] Training RandomForest model...")
         model_pipeline.fit(X_train, y_train)
         
         # Eval
         y_pred = model_pipeline.predict(X_test)
-        y_prob = model_pipeline.predict_proba(X_test)[:, 1]
-        
         acc = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        auc = roc_auc_score(y_test, y_prob)
+        mlflow.log_metric("accuracy", acc)
+        print(f"      Accuracy: {acc:.4f}")
         
-        mlflow.log_metrics({"accuracy": acc, "f1": f1, "auc": auc})
-        print(f"      Accuracy: {acc:.4f}, F1: {f1:.4f}, AUC: {auc:.4f}")
-        
-        # Save
-        print(f"\n[3/4] Saving model to {model_path}...")
+        # Save & Register
+        print(f"\n[3/4] Saving model to {model_path} and Registry...")
         with open(model_path, 'wb') as f:
             pickle.dump(model_pipeline, f)
             
-        mlflow.log_artifact(str(model_path))
-        print("      Model and artifacts logged successfully!")
+        # Register the model in MLflow Registry
+        mlflow.sklearn.log_model(
+            sk_model=model_pipeline,
+            artifact_path="model",
+            registered_model_name=model_name
+        )
+        print(f"      Model registered as '{model_name}'")
 
     print("\n" + "=" * 60)
     print("Training complete!")

@@ -40,29 +40,37 @@ class ChurnModel:
         self._load_model()
     
     def _load_model(self) -> None:
-        """Load the trained model from disk."""
+        """Load the trained model from disk or MLflow Registry."""
+        import os
+        import mlflow
+        from mlflow.tracking import MlflowClient
+
+        tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+        model_name = os.getenv("MLFLOW_MODEL_NAME", "CustomerChurnModel")
+        
         try:
-            with open(self.model_path, "rb") as f:
-                self.model = pickle.load(f)
-            logger.info(f"Churn Model loaded successfully from {self.model_path}")
-            self.last_error = None
+            if tracking_uri:
+                logger.info(f"Connecting to MLflow Registry: {tracking_uri}")
+                mlflow.set_tracking_uri(tracking_uri)
+                
+                # Fetching the 'Champion' or latest version
+                model_uri = f"models:/{model_name}/latest"
+                self.model = mlflow.sklearn.load_model(model_uri)
+                logger.info(f"Successfully loaded model from Registry: {model_uri}")
+            else:
+                # Fallback to local pickle
+                with open(self.model_path, "rb") as f:
+                    self.model = pickle.load(f)
+                logger.info(f"Loaded model from local path: {self.model_path}")
             
+            self.last_error = None
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(1)
-            if MODEL_LAST_RELOAD is not None:
-                MODEL_LAST_RELOAD.set(time.time())
-            if MODEL_INFO is not None:
-                MODEL_INFO.info({
-                    'version': self.version,
-                    'type': 'RandomForestClassifier',
-                    'path': str(self.model_path)
-                })
         except Exception as e:
             self.last_error = str(e)
             logger.error(f"Error loading model: {e}")
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(0)
-            # We don't raise here to allow the API to start in a degraded state
     
     def get_last_error(self) -> Optional[str]:
         return self.last_error
