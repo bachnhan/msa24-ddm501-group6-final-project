@@ -1,6 +1,9 @@
 # TELCO CUSTOMER CHURN PREDICTION SYSTEM
 ## System Design & Architecture
 
+> [!IMPORTANT]
+> **Study Note**: For the purpose of this course/demo, data and model artifacts are stored in the `data/` and `models/` folders. This is to ensure a smooth "out-of-the-box" experience. In real-world enterprise systems, these are decoupled into specialized stores (DVC for data, MLflow for models) for security and scalability.
+
 **Course:** DDM501 - AI in Production: From Models to Systems
 **Dataset:** IBM Telco Customer Churn
 **Prepared by:** Lê Huỳnh Trang

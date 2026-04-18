@@ -47,7 +47,7 @@ def test_predict_invalid_input(client):
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 400
-    assert "Invalid age" in response.json()["detail"]
+    assert "Guardrail: Age" in response.json()["detail"]
 
 def test_health_check(client):
     """Verify health check endpoint."""

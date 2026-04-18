@@ -30,12 +30,12 @@ htmlcov/
 coverage.xml
 *.cover
 
-# Models (Blocked for pure Registry test)
+# Models (Compressed fallback for GitHub)
 models/*.pkl
-models/*.pkl.gz
+!models/*.pkl.gz
 !models/.gitkeep
 
-# Data
+# Data (Excluded from Git as per user request)
 data/
 *.csv
 

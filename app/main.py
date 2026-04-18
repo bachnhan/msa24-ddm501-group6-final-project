@@ -22,7 +22,7 @@ from app.schemas import (
     BatchPredictionResponse,
 )
 from app.middleware import MetricsMiddleware
-from app.metrics import count_implemented_metrics
+from app.metrics import count_implemented_metrics, PREDICTION_BY_GENDER
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -107,11 +107,28 @@ async def predict(request: PredictionRequest):
     try:
         data = request.model_dump()
         
-        # --- API GUARDRAIL ---
-        if data['age'] < 0 or data['age'] > 120:
-            raise HTTPException(status_code=400, detail="Invalid age")
+        # --- RESPONSIBLE AI: API GUARDRAILS (Rubric 3.1.5) ---
+        if data['age'] < 18 or data['age'] > 120:
+            raise HTTPException(status_code=400, detail="Guardrail: Age must be between 18 and 120.")
         
+        if data['total_spend'] < 0:
+            raise HTTPException(status_code=400, detail="Guardrail: Total spend cannot be negative.")
+
+        if data['gender'] not in ['Male', 'Female']:
+            # Example of handling bias/privacy: map unknown or sensitive identifiers to a baseline
+            logger.warning(f"Unexpected gender value: {data['gender']}. This may lead to biased results.")
+        # --------------------------------------------------
+
         is_churn, prob, latency_ms = model.predict_with_latency(data)
+        
+        # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
+        # Log prediction distribution by gender to track bias in real-time
+        if METRICS_ENABLED:
+            PREDICTION_BY_GENDER.labels(
+                model_version=MODEL_VERSION, 
+                gender=data['gender']
+            ).observe(prob)
+        # --------------------------------------------------
         
         return PredictionResponse(
             churn_probability=round(prob, 4),

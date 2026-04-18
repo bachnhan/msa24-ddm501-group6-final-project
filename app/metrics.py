@@ -66,6 +66,16 @@ PREDICTION_VALUE = Histogram(
     buckets=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 )
 
+# RESPONSIBLE AI: Fairness Monitoring
+# -----------------------------------------------------------------------------
+PREDICTION_BY_GENDER = Histogram(
+    'ml_prediction_by_gender',
+    'Distribution of prediction values by gender group',
+    ['model_version', 'gender'],
+    buckets=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+)
+# -----------------------------------------------------------------------------
+
 
 
 PREDICTION_ERRORS = Counter(

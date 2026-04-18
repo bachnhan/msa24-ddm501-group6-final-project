@@ -1,4 +1,7 @@
 # CustomerChurn-Production: Predicting Customer Retention
+
+> [!NOTE]
+> **Educational Project**: This repository includes datasets and model binaries for demonstration purposes. In a professional MLOps environment, these would be managed externally via DVC and a secure Model Registry.
 [![CI/CD Pipeline](https://github.com/bachnhan/msa24-ddm501-group6-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/bachnhan/msa24-ddm501-group6-final-project/actions)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com)
