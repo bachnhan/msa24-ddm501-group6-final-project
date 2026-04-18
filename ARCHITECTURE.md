@@ -2,7 +2,9 @@
 ## System Design & Architecture
 
 > [!IMPORTANT]
-> **Study Note**: For the purpose of this course/demo, data and model artifacts are stored in the `data/` and `models/` folders. This is to ensure a smooth "out-of-the-box" experience. In real-world enterprise systems, these are decoupled into specialized stores (DVC for data, MLflow for models) for security and scalability.
+> **Production Standard**: This system utilizes a decoupled, cloud-native architecture. 
+> - **Model Registry**: Models are served exclusively from the **DagsHub MLflow Registry**, allowing for instant rollouts and hot-reloads without downtime.
+> - **Data Ingestion**: Training data is fetched dynamically from **Kaggle** during pipeline execution, ensuring a lightweight and version-controlled repository.
 
 **Course:** DDM501 - AI in Production: From Models to Systems
 **Dataset:** IBM Telco Customer Churn
@@ -67,9 +69,9 @@ graph TB
         MLFLOW --> REGISTRY
     end
 
-    subgraph SERVING["🚀 Serving Layer (Docker)"]
-        API["⚡ FastAPI\nPOST /api/v1/predict\nPOST /api/v1/predict/batch\nGET  /health\nGET  /model-info\n:8000"]
-        SHAP["🔍 SHAP Explainer\nreason_codes per prediction"]
+    subgraph SERVING["🚀 Serving Layer (Render)"]
+        API["⚡ FastAPI\nPOST /predict\nPOST /predict/batch\nGET  /health\nGET  /admin (hot-reload)"]
+        SHAP["🔍 SHAP Explainer\nglobal impact analysis"]
         API --> SHAP
     end
 

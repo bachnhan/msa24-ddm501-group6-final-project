@@ -73,8 +73,26 @@ class ChurnModel:
                     
                 logger.info(f"Fetching model from Registry using URI: {model_uri}")
                 self.model = mlflow.sklearn.load_model(model_uri)
-                self.loaded_version = model_ref
-                logger.info(f"Successfully loaded model version {model_ref} from MLflow Registry.")
+                
+                # Resolve the real version number from the alias (for the Admin Dashboard)
+                from mlflow.tracking import MlflowClient
+                client = MlflowClient()
+                if model_ref.isdigit():
+                    self.loaded_version = f"Version {model_ref}"
+                else:
+                    # Get the actual version number linked to the alias (e.g. 'latest')
+                    try:
+                        mv = client.get_latest_versions(model_name, [model_ref])
+                        if mv:
+                            self.loaded_version = f"v{mv[0].version} ({model_ref})"
+                        else:
+                            # If not a standard stage, try getting the specific version by alias
+                            # (Standard fallback if get_latest_versions is only for stages)
+                            self.loaded_version = model_ref
+                    except:
+                        self.loaded_version = model_ref
+
+                logger.info(f"Successfully loaded {self.loaded_version} from MLflow Registry.")
             else:
                 raise ValueError("Missing MLflow environment variables for Registry connection.")
 
