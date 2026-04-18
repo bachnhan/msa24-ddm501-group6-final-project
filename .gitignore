@@ -26,9 +26,10 @@ htmlcov/
 coverage.xml
 *.cover
 
-# Models (large files)
-models/*.pkl
+# Models (Keep churn_model.pkl for deployment)
+!models/churn_model.pkl
 !models/.gitkeep
+# models/*.pkl
 
 # Data
 data/
