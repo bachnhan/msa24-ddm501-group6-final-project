@@ -107,8 +107,8 @@ class ChurnModel:
                 import numpy as np
                 logger.warning("Initializing DUMMY MODEL fallback for integration testing.")
                 dummy = DummyClassifier(strategy="constant", constant=0)
-                # Fit on minimal data to initialize internal structures
-                dummy.fit(np.zeros((1, 10)), np.array([0]))
+                # Fit on data with both classes (0 and 1) to ensure predict_proba has index 1
+                dummy.fit(np.zeros((2, 10)), np.array([0, 1]))
                 self.model = dummy
                 self.loaded_version = "v0.0.1-DUMMY"
             except Exception as dummy_err:
