@@ -22,5 +22,9 @@ prometheus-client==0.19.0
 # MLOps Integration (Minimal)
 dagshub==0.3.3
 
+# Testing (Needed for GitHub Actions)
+pytest==7.4.3
+pytest-cov==4.1.0
+
 # IMPORTANT: Matplotlib, Seaborn, SHAP, and Opendatasets are removed 
 # to stay under Render's 512MB RAM limit.
