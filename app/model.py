@@ -109,17 +109,31 @@ class ChurnModel:
         Returns:
             Tuple[bool, float]: (Is Churn, Probability of Churn)
         """
+        is_churn, churn_prob, _ = self.predict_with_latency(data_dict)
+        return is_churn, churn_prob
+
+    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, float]:
+        """
+        Predict churn and also return the performance latency in milliseconds.
+        
+        Returns:
+            Tuple[bool, float, float]: (Is Churn, Probability, Latency MS)
+        """
         if self.model is None:
             raise RuntimeError("Model is not loaded. Cannot perform prediction.")
             
-        # Convert dictionary to DataFrame (Scikit-learn pipeline requirement)
+        start_time = time.perf_counter()
+        
+        # Convert dictionary to DataFrame
         X = pd.DataFrame([data_dict])
         
-        # Get class prediction and probability
+        # Get predictions
         churn_prob = float(self.model.predict_proba(X)[0, 1])
         is_churn = bool(self.model.predict(X)[0])
         
-        return is_churn, churn_prob
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        
+        return is_churn, churn_prob, latency_ms
 
     def is_loaded(self) -> bool:
         """Check if the model instance is ready for prediction."""
