@@ -14,33 +14,33 @@ REQUEST_LATENCY = Histogram(
 
 # --- 2. Model Lifecycle Metrics ---
 MODEL_LOADED = Gauge(
-    'model_loaded', 
+    'ml_model_loaded', 
     'Current model load status (1=OK, 0=Fail)'
 )
 MODEL_LAST_RELOAD = Gauge(
-    'model_last_reload_seconds', 
+    'ml_model_last_reload_seconds', 
     'Timestamp of last model reload'
 )
 MODEL_INFO = Info(
-    'model_info', 
+    'ml_model_info', 
     'Model metadata'
 )
 
 # --- 3. Prediction Activity Metrics ---
 PREDICTION_COUNT = Counter(
-    'prediction_total', 
+    'ml_predictions_total', 
     'Total number of churn predictions made'
 )
 PREDICTION_LATENCY = Histogram(
-    'prediction_latency_ms', 
-    'Time taken for churn prediction in milliseconds'
+    'ml_prediction_duration_seconds', 
+    'Time taken for churn prediction in seconds'
 )
 PREDICTION_VALUE = Histogram(
-    'prediction_value_dist', 
+    'ml_prediction_value', 
     'Distribution of prediction values'
 )
 PREDICTION_ERRORS = Counter(
-    'prediction_errors_total', 
+    'ml_prediction_errors_total', 
     'Total number of prediction errors'
 )
 

@@ -5,7 +5,7 @@ import concurrent.futures
 from statistics import mean, quantiles
 
 # --- CONFIGURATION ---
-URL = "http://localhost:8000/predict"  # Or your deployed URL
+URL = "https://customer-churn-api-3p4j.onrender.com/predict"
 TOTAL_REQUESTS = 200
 CONCURRENT_USERS = 10
 # ---------------------

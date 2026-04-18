@@ -21,7 +21,12 @@ from app.schemas import (
     BatchPredictionResponse,
 )
 from app.middleware import MetricsMiddleware
-from app.metrics import count_implemented_metrics, PREDICTION_BY_GENDER
+from app.metrics import (
+    count_implemented_metrics, 
+    PREDICTION_BY_GENDER, 
+    PREDICTION_COUNT, 
+    PREDICTION_LATENCY
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -121,8 +126,12 @@ async def predict(request: PredictionRequest):
         is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(data)
         
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
-        # Log prediction distribution by gender to track bias in real-time
         if METRICS_ENABLED:
+            # 1. Prediction count
+            PREDICTION_COUNT.inc(model_version=model.loaded_version)
+            # 2. Prediction latency (converted to seconds for consistency)
+            PREDICTION_LATENCY.observe(latency_ms / 1000.0)
+            # 3. Bias tracking
             PREDICTION_BY_GENDER.labels(
                 model_version=model.loaded_version, 
                 gender=data['gender']
@@ -155,6 +164,12 @@ async def predict_batch(request: BatchPredictionRequest):
         for item in request.predictions:
             is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(item.model_dump())
             total_latency += latency_ms
+            
+            # Record per-item metrics
+            if METRICS_ENABLED:
+                PREDICTION_COUNT.inc(model_version=model.loaded_version)
+                PREDICTION_LATENCY.observe(latency_ms / 1000.0)
+
             results.append(PredictionResponse(
                 churn_probability=round(prob, 3),
                 is_churn=is_churn,
