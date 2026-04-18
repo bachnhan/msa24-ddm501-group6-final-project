@@ -22,7 +22,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerFilePath: ./prometheus/Dockerfile
+    dockerfilePath: ./prometheus/Dockerfile
     dockerContext: .
     envVars:
       - key: RENDER_API_HOSTNAME
@@ -38,7 +38,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerFilePath: ./grafana/Dockerfile
+    dockerfilePath: ./grafana/Dockerfile
     dockerContext: .
     envVars:
       - key: GF_SECURITY_ADMIN_USER
