@@ -77,7 +77,7 @@ def run_audit_experiment(X_tr, X_va, X_te, y_tr, y_va, y_te, preprocessor, pos_w
             clf = XGBClassifier(scale_pos_weight=pos_weight, eval_metric='logloss', random_state=42)
             params = {'clf__max_depth': [3, 5]}
         elif model_type == "random_forest":
-            clf = RandomForestClassifier(random_state=42)
+            clf = RandomForestClassifier(class_weight='balanced', random_state=42)
             params = {'clf__max_depth': [10, 20]}
         else:
             clf = LogisticRegression(class_weight='balanced', max_iter=2000, random_state=42)
