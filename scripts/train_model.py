@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import recall_score, classification_report, accuracy_score, precision_score, f1_score
+from sklearn.metrics import recall_score, classification_report
 from xgboost import XGBClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -32,89 +32,60 @@ def clean_dataset(df):
     return df.dropna(subset=['churn'])
 
 def train_and_register():
-    # 1. Setup
-    dagshub.init(repo_owner="nhannhb92", repo_name="msa24-ddm501-group6-final-project", mlflow=True)
+    dagshub.init(repo_owner=\"nhannhb92\", repo_name=\"msa24-ddm501-group6-final-project\", mlflow=True)
     mlflow.sklearn.autolog(log_models=False)
     
-    # 2. Data
-    print("📂 Loading & Profiling Data...")
     try:
-        df_raw = clean_dataset(pd.read_csv("customer-churn-dataset/customer_churn_dataset-training-master.csv"))
-        df_test_final = clean_dataset(pd.read_csv("customer-churn-dataset/customer_churn_dataset-testing-master.csv"))
-    except FileNotFoundError:
-        print("⚠️ Data files not found.")
+        df_raw = clean_dataset(pd.read_csv(\"customer-churn-dataset/customer_churn_dataset-training-master.csv\"))
+        df_test_final = clean_dataset(pd.read_csv(\"customer-churn-dataset/customer_churn_dataset-testing-master.csv\"))
+    except:
         return
 
     df_train, df_val = train_test_split(df_raw, test_size=0.15, random_state=42, stratify=df_raw['churn'])
     
-    print(f"--- 📊 Data Profile ---")
-    print(f"Train: {len(df_train)} | Val: {len(df_val)} | Test: {len(df_test_final)}")
-    print(f"Avg Churn: {df_train['churn'].mean():.1%}")
-
     X_train, y_train = df_train.drop(columns=['churn']), df_train['churn']
     X_val, y_val = df_val.drop(columns=['churn']), df_val['churn']
     X_test, y_test = df_test_final.drop(columns=['churn']), df_test_final['churn']
 
-    # 3. Preprocessing
     preprocessor = ColumnTransformer([
         ('num', Pipeline([('imp', SimpleImputer(strategy='median')), ('sc', StandardScaler())]), X_train.select_dtypes(include=[np.number]).columns.tolist()),
         ('cat', Pipeline([('imp', SimpleImputer(strategy='most_frequent')), ('ohe', OneHotEncoder(handle_unknown='ignore'))]), X_train.select_dtypes(include=['object']).columns.tolist())
     ])
 
-    # Fit preprocessor to transform validation set for XGBoost
     preprocessor.fit(X_train)
-    X_val_transformed = preprocessor.transform(X_val)
+    X_val_t = preprocessor.transform(X_val)
 
-    models = ["xgboost", "random_forest", "logistic_regression"]
-    
-    for m_type in models:
-        mlflow.set_experiment("Churn_Hyper_Script_V5")
-        with mlflow.start_run(run_name=f"SCRIPT_TUNED_{m_type.upper()}"):
-            print(f"\n🚀 Training {m_type.upper()}...")
+    for m_type in [\"xgboost\", \"random_forest\", \"logistic_regression\"]:
+        mlflow.set_experiment(\"Churn_Final_Audit\")
+        with mlflow.start_run(run_name=f\"SCRIPT_{m_type.upper()}\"):
+            print(f\"\\n🚀 Training {m_type.upper()}...\")
             
-            if m_type == "xgboost":
-                pw = (y_train == 0).sum() / (y_train == 1).sum()
-                clf = XGBClassifier(scale_pos_weight=pw, random_state=42, early_stopping_rounds=10)
-                f_params = {"clf__eval_set": [(X_val_transformed, y_val)], "clf__verbose": False}
-                m_params = {
-                    'clf__max_depth': [3, 5, 7],
-                    'clf__learning_rate': [0.01, 0.1],
-                    'clf__n_estimators': [100, 200]
-                }
-            elif m_type == "random_forest":
+            if m_type == \"xgboost\":
+                clf = XGBClassifier(scale_pos_weight=(y_train==0).sum()/(y_train==1).sum(), early_stopping_rounds=10)
+                f_params = {\"clf__eval_set\": [(X_val_t, y_val)], \"clf__verbose\": False}
+                m_params = {'clf__max_depth': [3, 5]}
+            elif m_type == \"random_forest\":
                 clf = RandomForestClassifier(class_weight='balanced', random_state=42)
-                f_params = {}; m_params = {'clf__max_depth': [10, 20], 'clf__n_estimators': [100, 200]}
+                f_params = {}; m_params = {'clf__max_depth': [10, 20]}
             else:
                 clf = LogisticRegression(class_weight='balanced', max_iter=2000)
-                f_params = {}; m_params = {'clf__C': [0.1, 1.0], 'clf__solver': ['lbfgs', 'liblinear']}
+                f_params = {}; m_params = {'clf__C': [0.1, 1.0]}
 
             pipe = Pipeline([('pre', preprocessor), ('clf', clf)])
-            search = RandomizedSearchCV(pipe, m_params, n_iter=3, cv=2, scoring='recall', verbose=1)
+            search = RandomizedSearchCV(pipe, m_params, n_iter=2, cv=2, scoring='recall', verbose=1)
             search.fit(X_train, y_train, **f_params)
             best_model = search.best_estimator_
 
-            # Reporting
-            y_pred = best_model.predict(X_test)
-            print(f"🏆 Best Params: {search.best_params_}")
-            print(f"📊 Report:\n{classification_report(y_test, y_pred)}")
-            
-            # Metrics to MLflow
-            mlflow.log_params(search.best_params_)
-            mlflow.log_metric("recall", recall_score(y_test, y_pred))
-            mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
-
-            # SHAP (No display in head-less script, just log)
+            # SHAP (Improved Logic)
             try:
-                sample = X_test.sample(100)
-                X_map = pd.DataFrame(best_model.named_steps['pre'].transform(sample), columns=best_model.named_steps['pre'].get_feature_names_out())
-                exp = shap.LinearExplainer(best_model.named_steps['clf'], X_map) if m_type == "logistic_regression" else shap.Explainer(best_model.named_steps['clf'], X_map)
-                plt.figure(figsize=(10, 8)); shap.summary_plot(exp(X_map), X_map, show=False)
-                plt.savefig(f"shap_{m_type}.png"); mlflow.log_artifact(f"shap_{m_type}.png"); plt.close()
+                sample = X_test.sample(min(200, len(X_test)))
+                X_t = pd.DataFrame(best_model.named_steps['pre'].transform(sample), columns=best_model.named_steps['pre'].get_feature_names_out())
+                explainer = shap.Explainer(best_model.named_steps['clf'], X_t) if m_type == \"logistic_regression\" else shap.Explainer(best_model.named_steps['clf'])
+                plt.figure(figsize=(10, 8)); shap.summary_plot(explainer(X_t), X_t, show=False, max_display=20)
+                plt.savefig(f\"shap_{m_type}.png\"); mlflow.log_artifact(f\"shap_{m_type}.png\"); plt.close()
             except: pass
 
-            # Register
-            mlflow.sklearn.log_model(best_model, "model", registered_model_name=f"CustomerChurnModel_{m_type}")
-            print(f"✅ Registered {m_type.upper()}")
+            mlflow.sklearn.log_model(best_model, \"model\", registered_model_name=f\"CustomerChurnModel_{m_type}\")
 
-if __name__ == "__main__":
+if __name__ == \"__main__\":
     train_and_register()
