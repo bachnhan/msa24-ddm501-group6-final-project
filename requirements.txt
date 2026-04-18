@@ -8,8 +8,9 @@ httpx~=0.23.0
 pandas==2.2.1
 numpy==1.26.2
 
-# Machine Learning Core (Limited for RAM Safety)
-scikit-learn>=1.5.0
+# Machine Learning Core (FORCED VERSION COMPATIBILITY)
+# We use 1.5.1 because 1.6.x is still in pre-release/dev in some environments
+scikit-learn==1.5.1
 xgboost==2.1.4
 mlflow-skinny==2.11.3
 
