@@ -12,6 +12,10 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from dotenv import load_dotenv
+
+# Load local .env file
+load_dotenv()
 
 def main():
     """Train Customer Churn model with MLflow tracking."""

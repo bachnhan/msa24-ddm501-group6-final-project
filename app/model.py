@@ -10,6 +10,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from typing import List, Tuple, Optional
+from dotenv import load_dotenv
+
+# Load local .env file
+load_dotenv()
 
 from app.config import MODEL_PATH, MODEL_VERSION
 from app.metrics import (
