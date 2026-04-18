@@ -31,7 +31,7 @@ scrape_configs:
   # ==========================================================================
   - job_name: 'monitoring-system'
     static_configs:
-      - targets: ['${PROMETHEUS_TARGET:-localhost:9090}']
+      - targets: ['${PROMETHEUS_TARGET}']
 
   # ==========================================================================
   # 2. Customer Churn API Metrics (Primary)
@@ -52,4 +52,4 @@ scrape_configs:
   # ==========================================================================
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['${NODE_EXPORTER_TARGET:-node-exporter:9100}']
+      - targets: ['${NODE_EXPORTER_TARGET}']

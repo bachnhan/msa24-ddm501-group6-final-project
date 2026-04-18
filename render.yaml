@@ -54,4 +54,4 @@ services:
       - key: GF_USERS_ALLOW_SIGN_UP
         value: "false"
       - key: PROMETHEUS_URL
-        value: http://customer-churn-prometheus:9090
+        value: "https://customer-churn-prometheus.onrender.com"
