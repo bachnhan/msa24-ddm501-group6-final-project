@@ -28,7 +28,8 @@ services:
       - key: RENDER_API_HOSTNAME
         fromService:
           name: customer-churn-api
-          type: host
+          type: web
+          property: host
 
   # ===========================================================================
   # 3. Grafana Dashboards
