@@ -29,7 +29,8 @@ MODEL_INFO = Info(
 # --- 3. Prediction Activity Metrics ---
 PREDICTION_COUNT = Counter(
     'ml_predictions_total', 
-    'Total number of churn predictions made'
+    'Total number of churn predictions made',
+    labelnames=['model_version']
 )
 PREDICTION_LATENCY = Histogram(
     'ml_prediction_duration_seconds', 
@@ -41,7 +42,8 @@ PREDICTION_VALUE = Histogram(
 )
 PREDICTION_ERRORS = Counter(
     'ml_prediction_errors_total', 
-    'Total number of prediction errors'
+    'Total number of prediction errors',
+    labelnames=['model_version']
 )
 
 # --- 4. Responsible AI / Gender Metrics (Explicitly defined for app/main.py) ---

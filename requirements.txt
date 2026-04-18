@@ -13,6 +13,7 @@ numpy==1.26.2
 scikit-learn==1.5.1
 xgboost==2.1.4
 mlflow-skinny==2.11.3
+shap==0.44.1
 
 # Monitoring (RE-ENABLED)
 prometheus-client==0.19.0

@@ -128,7 +128,7 @@ async def predict(request: PredictionRequest):
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
         if METRICS_ENABLED:
             # 1. Prediction count
-            PREDICTION_COUNT.inc(model_version=model.loaded_version)
+            PREDICTION_COUNT.labels(model_version=model.loaded_version).inc()
             # 2. Prediction latency (converted to seconds for consistency)
             PREDICTION_LATENCY.observe(latency_ms / 1000.0)
             # 3. Bias tracking
@@ -167,7 +167,7 @@ async def predict_batch(request: BatchPredictionRequest):
             
             # Record per-item metrics
             if METRICS_ENABLED:
-                PREDICTION_COUNT.inc(model_version=model.loaded_version)
+                PREDICTION_COUNT.labels(model_version=model.loaded_version).inc()
                 PREDICTION_LATENCY.observe(latency_ms / 1000.0)
 
             results.append(PredictionResponse(
