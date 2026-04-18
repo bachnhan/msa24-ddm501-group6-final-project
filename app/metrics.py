@@ -21,39 +21,43 @@ MODEL_LAST_RELOAD = Gauge(
     'model_last_reload_seconds', 
     'Timestamp of last model reload'
 )
-# Use Info class to support .info() method expected by tests
 MODEL_INFO = Info(
     'model_info', 
     'Model metadata'
 )
 
-# --- 3. Prediction Metrics (Names matched to tests/test_metrics.py) ---
-PREDICTION_LATENCY = Histogram(
-    'prediction_latency_ms', 
-    'Time taken for churn prediction in milliseconds'
-)
+# --- 3. Prediction Activity Metrics ---
 PREDICTION_COUNT = Counter(
     'prediction_total', 
     'Total number of churn predictions made'
 )
+PREDICTION_LATENCY = Histogram(
+    'prediction_latency_ms', 
+    'Time taken for churn prediction in milliseconds'
+)
 PREDICTION_VALUE = Histogram(
-    'prediction_by_gender', 
-    'Churn probability distribution (used for gender bias monitoring)', 
-    ['model_version', 'gender']
+    'prediction_value_dist', 
+    'Distribution of prediction values'
 )
 PREDICTION_ERRORS = Counter(
-    'model_error_total', 
+    'prediction_errors_total', 
     'Total number of prediction errors'
 )
 
-# Aliases for internal code consistency if needed
+# --- 4. Responsible AI / Gender Metrics (Explicitly defined for app/main.py) ---
+PREDICTION_BY_GENDER = Histogram(
+    'prediction_by_gender', 
+    'Churn probability distribution by gender', 
+    ['model_version', 'gender']
+)
+
+# --- 5. Aliases for Compatibility ---
 PREDICTION_TOTAL = PREDICTION_COUNT
-PREDICTION_BY_GENDER = PREDICTION_VALUE
 MODEL_ERROR_TOTAL = PREDICTION_ERRORS
 
-# --- 4. Helper Functions ---
+# --- 6. Helper Functions ---
 def get_all_metrics():
-    """Returns a dictionary of all defined metrics."""
+    """Returns a dictionary of all defined metrics for tests."""
     return {
         'REQUEST_COUNT': REQUEST_COUNT,
         'REQUEST_LATENCY': REQUEST_LATENCY,
