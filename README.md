@@ -2,56 +2,30 @@
 [![CI/CD Pipeline](https://github.com/bachnhan/msa24-ddm501-group6-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/bachnhan/msa24-ddm501-group6-final-project/actions)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com)
-[![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-E6522C.svg?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io)
+[![MLflow](https://img.shields.io/badge/MLflow-Registry-0194E2.svg?style=flat&logo=mlflow&logoColor=white)](https://mlflow.org/)
 
 ## 📊 Project Overview
 
-This project implements an end-to-end **Customer Churn Prediction System** for the **DDM501 - AI in Production** Capstone. Using industry-standard classification models (Random Forest), the system identifies customers at risk of leaving, enabling proactive retention strategies.
-
-### 🎯 Problem Statement & Use Case
-High customer churn rates directly impact profitability. Our system predicts the likelihood of churn based on behavioral patterns (usage frequency, support calls, payment delays), allowing marketing teams to offer targeted incentives to high-risk customers perfectly aligned with the [Kaggle Customer Churn Dataset](https://www.kaggle.com/datasets/muhammadshahidazeem/customer-churn-dataset).
+This project implements an end-to-end **Customer Churn Prediction System** for the **DDM501 - AI in Production** Capstone. It features a professional MLOps workflow using **DagsHub (MLflow)** as a Model Registry and **Render** for production serving.
 
 ## 🏗️ System Design & Architecture
 
-Our system is built for **Scalability**, **Reliability**, and **Observability**. We follow a microservices-inspired architecture containerized with Docker.
+### MLOps Workflow
+1.  **Training**: Performed in stable cloud environments (e.g., Google Colab) to register models directly to the **DagsHub Registry**.
+2.  **Versioning**: Every model iteration is versioned (v1, v2, v3) in the Central Registry.
+3.  **Serving**: The FastAPI application on **Render** dynamically pulls the `latest` "Champion" model from the registry on startup.
+4.  **High Availability**: A local baked-in model serves as a **fallback** if the cloud registry is unreachable, ensuring zero downtime.
 
 ### High-Level Architecture
 ```mermaid
 graph TD
     User([CRM / Business App]) -->|POST /predict| LB[FastAPI Gateway]
-    subgraph "ML Inference Container"
-        LB --> PP[Preprocessor]
-        PP --> RF[Random Forest Model]
-        RF --> GU[Guardrails]
+    subgraph "Render Service"
+        LB --> Loader[Model Loader]
+        Loader -->|Primary| Registry[DagsHub MLflow Registry]
+        Loader -->|Fallback| LocalPickle[Local Pickle File]
     end
-    LB -.->|Prometheus| LOGS[(TSDB)]
-    LOGS --> GRAF[Grafana Dashboards]
-```
-
-### Inference Data Flow
-1. **Request**: Client sends customer JSON features.
-2. **Validation**: Pydantic ensures data integrity.
-3. **Pipeline**: Scikit-Learn Pipeline handles scaling and one-hot encoding.
-4. **Prediction**: Ensemble model generates churn probability.
-5. **Guardrail**: System verifies output constraints and logs to Prometheus.
-
-For detailed technology justifications and trade-off analysis, see [Architecture & Trade-offs](ARCHITECTURE.md).
-
----
-
-## 📂 Project Structure
-```text
-.
-├── app/
-│   ├── main.py             # FastAPI churn endpoints
-│   ├── model.py            # RF Classifier wrapper
-│   ├── schemas.py          # Customer feature schemas
-├── scripts/
-│   ├── train_model.py      # Classification training (MLflow)
-│   ├── explain_model.py    # Feature importance analysis
-│   └── fairness_analysis.py# Bias detection (Gender/Tenure)
-├── models/                 # Model pipeline (.pkl)
-└── ...
+    Loader --> RF[Random Forest Model]
 ```
 
 ---
@@ -62,76 +36,54 @@ For detailed technology justifications and trade-off analysis, see [Architecture
 ```bash
 git clone git@github.com:bachnhan/msa24-ddm501-group6-final-project.git
 cd msa24-ddm501-group6-final-project
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# 2. Configure Environment
-cp .env.example .env  # Then edit with your DagsHub credentials
 ```
 
-### 2. Model Training
-```bash
-# Trains Random Forest and logs to MLflow
-python scripts/train_model.py
+### 2. Configure Environment
+Create a `.env` file with your DagsHub credentials:
+```env
+MLFLOW_TRACKING_URI=https://dagshub.com/your-user/your-repo.mlflow
+MLFLOW_TRACKING_USERNAME=your-user
+MLFLOW_TRACKING_PASSWORD=your-token
+MLFLOW_MODEL_NAME=CustomerChurnModel
 ```
 
-### 3. Usage & Explanations
+### 3. Model Training & Registration
+For best results (bypassing local network restrictions), it is recommended to run the training script in **Google Colab**:
+1.  Load the `scripts/train_model.py` logic into a Colab notebook.
+2.  Install dependencies: `!pip install mlflow dagshub scikit-learn pandas numpy`.
+3.  Run to register the model as `v1`, `v2`, etc., in the DagsHub **Models** tab.
+
+### 4. Local Serving
 ```bash
-# Start API
+# Start API locally
 uvicorn app.main:app --reload
-
-# Explain predictions
-python scripts/explain_model.py
 ```
 
 ---
 
-## 📊 Monitoring & Observability
-
-Our system implements a full-stack observability suite for reliable production serving.
-
-### Service Access Links
-| Service | URL | Default Credentials |
-|:--- |:--- |:--- |
-| **Prediction API** | [http://localhost:8000](http://localhost:8000) | N/A |
-| **API Docs (Swagger)**| [http://localhost:8000/docs](http://localhost:8000/docs) | N/A |
-| **Prometheus** | [http://localhost:9090](http://localhost:9090) | N/A |
-| **Grafana** | [http://localhost:3000](http://localhost:3000) | `admin` / `admin` |
-
-### Dashboards
-- **System Metrics**: Real-time traffic analysis, error rates, and infrastructure (CPU/RAM) health.
-- **ML Metrics**: Prediction probability distribution, model versioning, and latency quantiles (P50, P95, P99).
-
-### 🏆 Model Registry (DagsHub)
-Our system uses **DagsHub** as a central Model Registry. This allows us to decouple training from serving:
-1.  **Train**: Run training locally (or in CI); model is registered to DagsHub.
-2.  **Serve**: Render API pulls the `latest` version from DagsHub on startup.
-3.  **Monitor**: Prometheus tracks performance of whichever model is currently "Live".
-
-### Alerting Rules (C3)
-1. **High Error Rate**: Triggered if 5xx responses exceed 5% within 1 minute.
-2. **Slow Latency**: Triggered if P95 response time exceeds 500ms.
-3. **Prediction Anomaly**: Detects drifts in median churn probability (>0.2 shift).
-4. **Service Outage**: Immediate alert if the `churn-api` runner stops.
+## 📈 Monitoring & Observability
+| Service | URL |
+|:--- |:--- |
+| **Prediction API** | [Render URL/predict] |
+| **API Docs** | [Render URL/docs] |
+| **Model Registry** | [DagsHub Models Tab] |
 
 ---
 
 ## ⚖️ Responsible AI
-- **Explainability**: Uses Global Feature Importance to identify top churn drivers.
-- **Fairness**: Monitors error rate parity between different user demographics.
-- **Guardrails**: Validates input ranges (e.g., age, tenure) to prevent out-of-distribution errors.
+- **Explainability**: Global Feature Importance identifies top churn drivers.
+- **Fairness**: Monitoring error rate parity across demographics (Gender, tenure).
+- **Guardrails**: Input validation prevents out-of-distribution traffic from reaching the model.
 
 ---
 
 ## 📚 Documentation
-- [Problem Statement & Business Context](docs/ProblemStatement.md)
-- [Requirements & Use Cases](docs/Requirements.md)
-- [Success Metrics](docs/SuccessMetrics.md)
 - [Architecture & Trade-offs](ARCHITECTURE.md)
+- [Success Metrics](docs/SuccessMetrics.md)
 - [Fairness Analysis Report](scripts/fairness_analysis.py)
-- [Model Explainability Guide](scripts/explain_model.py)
-- [Contribution Roles](CONTRIBUTING.md)
 
 ---
 © 2026 DDM501 Group 6 - AI in Production

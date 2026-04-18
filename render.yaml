@@ -12,6 +12,14 @@ services:
         value: "true"
       - key: MODEL_VERSION
         value: "1.0.0"
+      - key: MLFLOW_TRACKING_URI
+        value: "https://dagshub.com/nhannhb92/msa24-ddm501-group6-final-project.mlflow"
+      - key: MLFLOW_TRACKING_USERNAME
+        value: "nhannhb92"
+      - key: MLFLOW_TRACKING_PASSWORD
+        sync: false
+      - key: MLFLOW_MODEL_NAME
+        value: "CustomerChurnModel"
     healthCheckPath: /health
 
   # ===========================================================================

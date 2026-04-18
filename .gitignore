@@ -26,10 +26,10 @@ htmlcov/
 coverage.xml
 *.cover
 
-# Models (Keep churn_model.pkl for deployment)
-!models/churn_model.pkl
+# Models (Blocked for pure Registry test)
+models/*.pkl
+models/*.pkl.gz
 !models/.gitkeep
-# models/*.pkl
 
 # Data
 data/
