@@ -6,6 +6,11 @@
 FROM python:3.10-slim
 
 # Set working directory
+# Memory Optimization for Render Free Tier (512MB)
+ENV MALLOC_ARENA_MAX=2
+ENV OMP_NUM_THREADS=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 # Install system dependencies

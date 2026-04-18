@@ -73,6 +73,8 @@ class ChurnModel:
                     
                 logger.info(f"Fetching model from Registry using URI: {model_uri}")
                 self.model = mlflow.sklearn.load_model(model_uri)
+                import gc
+                gc.collect() # Force garbage collection to free RAM after loading large model
                 
                 # Resolve the real version number from the alias (for the Admin Dashboard)
                 from mlflow.tracking import MlflowClient

@@ -1,30 +1,21 @@
-# Web App (Essential)
+# Web App (Bare Minimum)
 fastapi==0.104.1
 uvicorn==0.24.0
 python-dotenv==1.0.0
 httpx~=0.23.0
 
-# Data Science (Essential) - Pandas 2.x is heavy, but we need it for CT
+# Data (Bare Minimum)
 pandas==2.2.1
 numpy==1.26.2
 
-# Machine Learning (Essential for Prediction)
-scikit-learn==1.5.1
+# Machine Learning Core (Limited for RAM Safety)
+scikit-learn>=1.5.0
 xgboost==2.1.4
-
-# MLflow Skinny (Saves ~150MB RAM over full MLflow)
 mlflow-skinny==2.11.3
 
-# Monitoring
-# Note: Keeping prometheus for your monitoring dashboard
+# Monitoring (RE-ENABLED)
 prometheus-client==0.19.0
 
-# MLOps Integration (Minimal)
-dagshub==0.3.3
-
-# Testing (Needed for GitHub Actions)
+# Testing
 pytest==7.4.3
 pytest-cov==4.1.0
-
-# IMPORTANT: Matplotlib, Seaborn, SHAP, and Opendatasets are removed 
-# to stay under Render's 512MB RAM limit.
