@@ -12,6 +12,8 @@ services:
         value: "true"
       - key: MODEL_VERSION
         value: "1.0.0"
+      - key: MLFLOW_MODEL_VERSION
+        value: "latest"
     healthCheckPath: /health
 
   # ===========================================================================

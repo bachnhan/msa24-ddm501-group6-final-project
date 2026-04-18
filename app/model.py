@@ -60,11 +60,18 @@ class ChurnModel:
                 
                 logger.info(f"Connecting to MLflow Tracking Server: {tracking_uri}")
                 mlflow.set_tracking_uri(tracking_uri)
+
+                # Flexible reference: can be a version number (1, 2) or an alias (Champion, Production)
+                model_ref = os.getenv("MLFLOW_MODEL_VERSION", "latest")
                 
-                # Construct Model URI for the latest version in the registry
-                model_uri = f"models:/{model_name}/latest"
-                logger.info(f"Fetching latest model version from Registry: {model_uri}")
-                
+                # If ref is purely numeric, it's a version number, use / syntax
+                if model_ref.isdigit():
+                    model_uri = f"models:/{model_name}/{model_ref}"
+                else:
+                    # Otherwise, it's an alias, use @ syntax
+                    model_uri = f"models:/{model_name}@{model_ref}"
+                    
+                logger.info(f"Fetching model from Registry using URI: {model_uri}")
                 self.model = mlflow.sklearn.load_model(model_uri)
                 logger.info("Successfully loaded model from MLflow Registry.")
             else:
