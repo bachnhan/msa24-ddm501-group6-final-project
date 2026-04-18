@@ -101,22 +101,25 @@ class ChurnModel:
             logger.error(self.last_error)
             
             # [CI/CD Fallback] If we can't load from Registry (e.g. GitHub Actions), create a Dummy Model
-            # This prevents the entire API from failing (503) during automated tests.
             try:
                 from sklearn.dummy import DummyClassifier
                 import numpy as np
-                logger.warning("Initializing DUMMY MODEL fallback for integration testing.")
+                logger.warning(f"Connection failed ({e}). Initializing DUMMY MODEL fallback.")
                 dummy = DummyClassifier(strategy="constant", constant=0)
-                # Fit on data with both classes (0 and 1) to ensure predict_proba has index 1
                 dummy.fit(np.zeros((2, 10)), np.array([0, 1]))
                 self.model = dummy
-                self.loaded_version = "v0.0.1-DUMMY"
+                # Indicate it's a dummy fallback in the version string
+                self.loaded_version = "v0.0.1-DUMMY (Registry Connection Failed)"
             except Exception as dummy_err:
                 logger.error(f"Failed to even create a Dummy Model: {dummy_err}")
     
         # Update metrics
         if self.model is not None:
-            self.last_error = None
+            # Note: We NO LONGER clear last_error if it contains a Registry failure message, 
+            # so the user can see why the Registry failed on the health page.
+            if "DUMMY" not in self.loaded_version:
+                self.last_error = None
+                
             if MODEL_LOADED is not None:
                 MODEL_LOADED.set(1)
         else:
