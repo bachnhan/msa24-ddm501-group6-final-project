@@ -19,37 +19,43 @@ def auth_header():
     return {"Authorization": f"Basic {encoded}"}
 
 # 1. ADVANCED GUARDRAIL TESTS
-@pytest.mark.parametrize("age,expected_status", [
-    (18, 200),   # Boundary: min
-    (120, 200),  # Boundary: max
-    (17, 400),   # Out of bounds: low
-    (121, 400),  # Out of bounds: high
+@pytest.mark.parametrize("tenure,expected_status", [
+    (0, 200),     # Boundary: min
+    (120, 200),   # Boundary: max
+    (-1, 400),    # Out of bounds: low
+    (121, 400),   # Out of bounds: high
 ])
-def test_predict_age_guardrails(client, age, expected_status):
+def test_predict_tenure_guardrails(client, tenure, expected_status):
     payload = {
-        "age": age, "gender": "Male", "tenure": 12, "usage_frequency": 10,
-        "support_calls": 1, "payment_delay": 0, "subscription_type": "Basic",
-        "contract_length": "Monthly", "total_spend": 100.0, "last_interaction": 1
+        "gender": "Male", "seniorcitizen": 0, "partner": "No", "dependents": "No",
+        "tenure": tenure, "phoneservice": "Yes", "multiplelines": "No",
+        "internetservice": "DSL", "onlinesecurity": "No", "onlinebackup": "No",
+        "deviceprotection": "No", "techsupport": "No", "streamingtv": "No",
+        "streamingmovies": "No", "contract": "Month-to-month", "paperlessbilling": "Yes",
+        "paymentmethod": "Electronic check", "monthlycharges": 50.0, "totalcharges": 50.0
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == expected_status
 
 def test_predict_negative_spend(client):
     payload = {
-        "age": 30, "gender": "Male", "tenure": 12, "usage_frequency": 10,
-        "support_calls": 1, "payment_delay": 0, "subscription_type": "Basic",
-        "contract_length": "Monthly", "total_spend": -50.0, "last_interaction": 1
+        "gender": "Male", "seniorcitizen": 0, "partner": "No", "dependents": "No",
+        "tenure": 10, "phoneservice": "Yes", "multiplelines": "No",
+        "internetservice": "DSL", "onlinesecurity": "No", "onlinebackup": "No",
+        "deviceprotection": "No", "techsupport": "No", "streamingtv": "No",
+        "streamingmovies": "No", "contract": "Month-to-month", "paperlessbilling": "Yes",
+        "paymentmethod": "Electronic check", "monthlycharges": 50.0, "totalcharges": -100.0
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 400
-    assert "Total spend cannot be negative" in response.json()["detail"]
+    assert "Total charges cannot be negative" in response.json()["detail"]
 
 # 2. BATCH PREDICTION TESTS
 def test_predict_batch_success(client):
     payload = {
         "predictions": [
-            {"age": 30, "gender": "Male", "tenure": 12, "usage_frequency": 10, "support_calls": 1, "payment_delay": 0, "subscription_type": "Basic", "contract_length": "Monthly", "total_spend": 100.0, "last_interaction": 1},
-            {"age": 45, "gender": "Female", "tenure": 24, "usage_frequency": 5, "support_calls": 3, "payment_delay": 2, "subscription_type": "Premium", "contract_length": "Annual", "total_spend": 500.0, "last_interaction": 10}
+            {"gender": "Male", "seniorcitizen": 0, "partner": "No", "dependents": "No", "tenure": 10, "phoneservice": "Yes", "multiplelines": "No", "internetservice": "DSL", "onlinesecurity": "No", "onlinebackup": "No", "deviceprotection": "No", "techsupport": "No", "streamingtv": "No", "streamingmovies": "No", "contract": "Month-to-month", "paperlessbilling": "Yes", "paymentmethod": "Electronic check", "monthlycharges": 50.0, "totalcharges": 500.0},
+            {"gender": "Female", "seniorcitizen": 1, "partner": "Yes", "dependents": "No", "tenure": 24, "phoneservice": "Yes", "multiplelines": "Yes", "internetservice": "Fiber optic", "onlinesecurity": "Yes", "onlinebackup": "Yes", "deviceprotection": "Yes", "techsupport": "No", "streamingtv": "Yes", "streamingmovies": "Yes", "contract": "One year", "paperlessbilling": "Yes", "paymentmethod": "Credit card (automatic)", "monthlycharges": 100.0, "totalcharges": 2400.0}
         ]
     }
     response = client.post("/predict/batch", json=payload)

@@ -9,34 +9,40 @@ import numpy as np
 from pathlib import Path
 
 def explain_churn(model_path="models/churn_model.pkl"):
+    import mlflow.sklearn
+    # Try loading from local, otherwise help user load from Registry
     if not Path(model_path).exists():
-        print("Model not found.")
+        print("💡 Local model artifact not found. Please run Training script first or use MLflow Registry.")
         return
 
     with open(model_path, "rb") as f:
         pipeline = pickle.load(f)
 
-    # Get feature names after preprocessing
-    classifier = pipeline.named_steps['classifier']
-    preprocessor = pipeline.named_steps['preprocessor']
+    # Get components from our updated pipeline structure
+    clf = pipeline.named_steps['clf']
+    pre = pipeline.named_steps['pre']
     
-    # Extract feature names
-    cat_features = preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(['gender', 'subscription_type', 'contract_length'])
-    num_features = ['age', 'tenure', 'usage_frequency', 'support_calls', 'payment_delay', 'total_spend', 'last_interaction']
-    feature_names = np.concatenate([num_features, cat_features])
+    # Resolve feature names
+    feature_names = pre.get_feature_names_out()
     
-    importances = classifier.feature_importances_
+    # Handle different model types
+    if hasattr(clf, 'feature_importances_'):
+        importances = clf.feature_importances_
+    elif hasattr(clf, 'coef_'):
+        importances = np.abs(clf.coef_[0])
+    else:
+        print("Model type not supported for simple importance extraction.")
+        return
+
     results = pd.DataFrame({'Feature': feature_names, 'Importance': importances})
     results = results.sort_values(by='Importance', ascending=False)
     
     print("\n" + "="*40)
-    print("FEATURE IMPORTANCE (GLOBAL EXPLANATION)")
+    print("TELCO FEATURE IMPORTANCE (GLOBAL)")
     print("="*40)
     print(results.head(10))
     print("="*40)
-    print("\nInterpretation:")
-    top_feature = results.iloc[0]['Feature']
-    print(f"The most critical factor driving customer churn is: {top_feature}")
+    print(f"\nInterpretation: Top churn driver is {results.iloc[0]['Feature']}")
 
 if __name__ == "__main__":
     explain_churn()

@@ -24,7 +24,7 @@ def download_kaggle_dataset():
         json.dump(kaggle_creds, f)
     
     # 3. Download
-    dataset_url = "https://www.kaggle.com/datasets/muhammadshahidazeem/customer-churn-dataset"
+    dataset_url = "https://www.kaggle.com/datasets/blastchar/telco-customer-churn"
     print(f"🚀 Downloading dataset from {dataset_url}...")
     
     try:
