@@ -14,8 +14,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
-# Load environment variables from .env
+# Load environment variables (Local .env, .secret, or Render Secret Files)
 load_dotenv(override=True)
+for secret_file in [".secret", "/etc/secrets/.env", "/etc/secrets/.secret"]:
+    if os.path.exists(secret_file):
+        load_dotenv(secret_file, override=True)
 
 def main():
     """

@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 from dotenv import load_dotenv
 
-# Load environment variables from .env if present
+# Load environment variables (Local .env, .secret, or Render Secret Files)
 load_dotenv(override=True)
+for secret_file in [".secret", "/etc/secrets/.env", "/etc/secrets/.secret"]:
+    if os.path.exists(secret_file):
+        load_dotenv(secret_file, override=True)
 
 from app.config import MODEL_PATH, MODEL_VERSION
 from app.metrics import (
@@ -43,9 +46,15 @@ class ChurnModel:
         model_name = os.getenv("MLFLOW_MODEL_NAME", "CustomerChurnModel")
         
         try:
-            # Attempt to load from Remote MLflow Registry
-            if tracking_uri and username and password:
-                # Set authentication environment variables for MLflow client
+            if tracking_uri and username and (password or os.path.exists("/etc/secrets/.env") or os.path.exists("/etc/secrets/.secret")):
+                # Ensure we have the password from secret files if dashboard is empty
+                if not password:
+                    for sf in ["/etc/secrets/.env", "/etc/secrets/.secret"]:
+                        if os.path.exists(sf):
+                            load_dotenv(sf, override=True)
+                    password = os.getenv("MLFLOW_TRACKING_PASSWORD")
+                
+                # Set authentication for MLflow client
                 os.environ['MLFLOW_TRACKING_USERNAME'] = username
                 os.environ['MLFLOW_TRACKING_PASSWORD'] = password
                 
