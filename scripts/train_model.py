@@ -16,12 +16,14 @@ from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 def main():
     """Train Customer Churn model with MLflow tracking."""
     # Configure DagsHub Tracking
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    repo_owner = "nhannhb92"
+    repo_name = "msa24-ddm501-group6-final-project"
     model_name = os.getenv("MLFLOW_MODEL_NAME", "CustomerChurnModel")
     
-    if tracking_uri:
-        print(f"[INFO] Using MLflow Remote: {tracking_uri}")
-        mlflow.set_tracking_uri(tracking_uri)
+    if os.getenv("MLFLOW_TRACKING_URI"):
+        import dagshub
+        print(f"[INFO] Initializing DagsHub connection...")
+        dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
     
     print("=" * 60)
     print("Customer Churn Model Training with MLflow")
