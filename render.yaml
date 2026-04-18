@@ -1,0 +1,51 @@
+services:
+  # ===========================================================================
+  # 1. FastAPI Prediction API
+  # ===========================================================================
+  - type: web
+    name: customer-churn-api
+    runtime: docker
+    plan: free
+    region: singapore # Matches your timezone (VN/SE Asia)
+    envVars:
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: MODEL_VERSION
+        value: "1.0.0"
+    healthCheckPath: /health
+
+  # ===========================================================================
+  # 2. Prometheus Monitoring
+  # ===========================================================================
+  - type: web
+    name: customer-churn-prometheus
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerFilePath: ./prometheus/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: RENDER_API_HOSTNAME
+        fromService:
+          name: customer-churn-api
+          type: host
+
+  # ===========================================================================
+  # 3. Grafana Dashboards
+  # ===========================================================================
+  - type: web
+    name: customer-churn-grafana
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerFilePath: ./grafana/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: GF_SECURITY_ADMIN_USER
+        value: admin
+      - key: GF_SECURITY_ADMIN_PASSWORD
+        value: admin
+      - key: GF_USERS_ALLOW_SIGN_UP
+        value: "false"
+      - key: PROMETHEUS_URL
+        value: http://customer-churn-prometheus:9090
