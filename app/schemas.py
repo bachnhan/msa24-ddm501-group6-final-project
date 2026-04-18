@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
 class PredictionRequest(BaseModel):
@@ -16,6 +16,7 @@ class PredictionRequest(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Output of the churn prediction."""
+    model_config = ConfigDict(protected_namespaces=())
     churn_probability: float = Field(..., example=0.15)
     is_churn: bool = Field(..., example=False)
     model_version: str = Field(..., example="1.0.0")
@@ -23,6 +24,7 @@ class PredictionResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+    model_config = ConfigDict(protected_namespaces=())
     status: str
     model_loaded: bool
     model_version: str

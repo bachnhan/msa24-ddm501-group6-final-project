@@ -64,11 +64,11 @@ class ChurnModel:
                 # Flexible reference: can be a version number (1, 2) or an alias (Champion, Production)
                 model_ref = os.getenv("MLFLOW_MODEL_VERSION", "latest")
                 
-                # If ref is purely numeric, it's a version number, use / syntax
-                if model_ref.isdigit():
+                # Check if ref is numeric or 'latest'
+                if model_ref.isdigit() or model_ref.lower() == "latest":
                     model_uri = f"models:/{model_name}/{model_ref}"
                 else:
-                    # Otherwise, it's an alias, use @ syntax
+                    # Otherwise, it's a custom alias (e.g., '@champion'), use @ syntax
                     model_uri = f"models:/{model_name}@{model_ref}"
                     
                 logger.info(f"Fetching model from Registry using URI: {model_uri}")
