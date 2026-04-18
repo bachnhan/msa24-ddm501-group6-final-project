@@ -48,10 +48,11 @@ def test_model_output_range():
         "streamingmovies": "No", "contract": "Month-to-month", "paperlessbilling": "Yes",
         "paymentmethod": "Electronic check", "monthlycharges": 29.85, "totalcharges": 29.85
     }
-    is_churn, prob, reason_codes, latency = model.predict_with_latency(sample_data)
+    is_churn, prob, risk_tier, reason_codes, latency = model.predict_with_latency(sample_data)
     
     assert 0.0 <= prob <= 1.0
     assert isinstance(is_churn, bool)
+    assert risk_tier in ["High", "Medium", "Low"]
     assert isinstance(reason_codes, list)
 
 def test_data_completeness():

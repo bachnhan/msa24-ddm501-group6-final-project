@@ -24,13 +24,13 @@ class PredictionRequest(BaseModel):
     totalcharges: float = Field(..., example=29.85)
 
 class PredictionResponse(BaseModel):
-    """Output of the churn prediction."""
+    """Refined output matching the requested sample with probability and risk tier."""
     model_config = ConfigDict(protected_namespaces=())
-    churn_probability: float = Field(..., example=0.15)
-    is_churn: bool = Field(..., example=False)
-    reason_codes: Optional[List[str]] = Field(None, example=["Contract=Monthly", "Tenure<6 months"], description="Top factors influencing the prediction")
+    churn_probability: float = Field(..., example=0.823)
+    is_churn: bool = Field(..., example=True)
+    risk_tier: str = Field(..., example="High", description="Risk level (Low, Medium, High)")
+    reason_codes: List[str] = Field(..., example=["contract_type_monthly", "tenure_lt_12mo", "no_techsupport"], description="Semantic slug-style reason codes")
     model_version: str = Field(..., example="1.0.0")
-    latency_ms: float = Field(..., example=12.5)
 
 class HealthResponse(BaseModel):
     """Health check response."""

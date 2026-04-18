@@ -38,8 +38,9 @@ def test_predict_endpoint_success(client):
     data = response.json()
     assert "churn_probability" in data
     assert "is_churn" in data
-    assert "latency_ms" in data
+    assert "risk_tier" in data
     assert "reason_codes" in data
+    assert isinstance(data["reason_codes"], list)
 
 def test_predict_invalid_input(client):
     """Test prediction with invalid tenure (Guardrail test)."""

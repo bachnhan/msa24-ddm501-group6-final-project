@@ -80,21 +80,25 @@ class ChurnModel:
                 from mlflow.tracking import MlflowClient
                 client = MlflowClient()
                 if model_ref.isdigit():
-                    self.loaded_version = f"Version {model_ref}"
+                    self.loaded_version = f"v{model_ref}"
                 else:
-                    # Get the actual version number linked to the alias (e.g. 'latest')
+                    # Resolve alias (latest, champion, etc.) to numeric version
                     try:
-                        mv = client.get_latest_versions(model_name, [model_ref])
-                        if mv:
-                            self.loaded_version = f"v{mv[0].version} ({model_ref})"
-                        else:
-                            # If not a standard stage, try getting the specific version by alias
-                            # (Standard fallback if get_latest_versions is only for stages)
-                            self.loaded_version = model_ref
+                        # Try getting by alias first (standard for modern MLflow)
+                        v_info = client.get_model_version_by_alias(model_name, model_ref)
+                        self.loaded_version = f"v{v_info.version}"
                     except:
-                        self.loaded_version = model_ref
-
-                logger.info(f"Successfully loaded {self.loaded_version} from MLflow Registry.")
+                        try:
+                            # Fallback for older stages (Production/Staging)
+                            v_info = client.get_latest_versions(model_name, [model_ref])
+                            if v_info:
+                                self.loaded_version = f"v{v_info[0].version}"
+                            else:
+                                self.loaded_version = model_ref
+                        except:
+                            self.loaded_version = model_ref
+                
+                logger.info(f"✅ Successfully loaded {self.loaded_version} from MLflow Registry.")
             else:
                 raise ValueError("Missing MLflow environment variables for Registry connection.")
 
@@ -132,7 +136,7 @@ class ChurnModel:
         """Return the last error message if model failed to load."""
         return self.last_error
     
-    def predict(self, data_dict: dict) -> Tuple[bool, float, List[str]]:
+    def predict(self, data_dict: dict) -> Tuple[bool, str, List[str]]:
         """
         Process input features and return churn prediction.
         
@@ -140,17 +144,17 @@ class ChurnModel:
             data_dict (dict): Dictionary containing customer features.
             
         Returns:
-            Tuple[bool, float, List[str]]: (Is Churn, Probability of Churn, Reason Codes)
+            Tuple[bool, str, List[str]]: (Is Churn, Risk Tier, Reason Codes)
         """
-        is_churn, churn_prob, reason_codes, _ = self.predict_with_latency(data_dict)
-        return is_churn, churn_prob, reason_codes
+        is_churn, _, risk_tier, reason_codes, _ = self.predict_with_latency(data_dict)
+        return is_churn, risk_tier, reason_codes
 
-    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, List[str], float]:
+    def predict_with_latency(self, data_dict: dict) -> Tuple[bool, float, str, List[str], float]:
         """
-        Predict churn and also return the performance latency in milliseconds.
+        Predict churn and also return fixed categories and performance metrics.
         
         Returns:
-            Tuple[bool, float, List[str], float]: (Is Churn, Probability, Reason Codes, Latency MS)
+            Tuple[bool, float, str, List[str], float]: (Is Churn, Probability, Risk Tier, Reason Codes, Latency MS)
         """
         if self.model is None:
             raise RuntimeError("Model is not loaded. Cannot perform prediction.")
@@ -164,48 +168,69 @@ class ChurnModel:
         churn_prob = float(self.model.predict_proba(X)[0, 1])
         is_churn = bool(self.model.predict(X)[0])
         
+        # --- RESPONSIBLE AI: RISK TIERING ---
+        if churn_prob > 0.7:
+            risk_tier = "High"
+        elif churn_prob > 0.3:
+            risk_tier = "Medium"
+        else:
+            risk_tier = "Low"
+        
         # --- RESPONSIBLE AI: EXPLAINABILITY (Rubric 3.1.5) ---
         reason_codes = []
         try:
             import shap
-            # Extract components from pipeline
             preprocessor = self.model.named_steps['pre']
             clf = self.model.named_steps['clf']
             
-            # Transform single record
             X_transformed = preprocessor.transform(X)
             if hasattr(X_transformed, "toarray"):
                 X_transformed = X_transformed.toarray()
             
-            # Explain this specific prediction
             explainer = shap.Explainer(clf)
             shap_values = explainer(X_transformed)
             
-            # Get feature names from preprocessor
-            feature_names = preprocessor.get_feature_names_out()
+            raw_feature_names = preprocessor.get_feature_names_out()
             
-            # Get top 3 features with highest absolute SHAP values
-            # shap_values[0].values is the array of contributions
-            contributions = shap_values[0].values
-            if len(contributions.shape) > 1: # For some multiclass/prob explainer
-                 contributions = contributions[:, 1] # Path for positive class
+            if hasattr(shap_values, "values"):
+                vals = shap_values.values[0]
+            else:
+                vals = shap_values[0]
+
+            if len(vals.shape) > 1 and vals.shape[-1] > 1:
+                vals = vals[:, 1]
             
-            top_indices = sorted(range(len(contributions)), 
-                               key=lambda i: abs(contributions[i]), 
-                               reverse=True)[:3]
+            top_indices = sorted(range(len(vals)), key=lambda i: abs(vals[i]), reverse=True)[:3]
             
             for idx in top_indices:
-                val = contributions[idx]
-                feat = feature_names[idx].split("__")[-1] # Clean OHE names
-                direction = "High" if val > 0 else "Low"
-                reason_codes.append(f"{feat} ({direction})")
+                impact = vals[idx]
+                feat_raw = raw_feature_names[idx].split("__")[-1].lower()
+                
+                # Semantic Mapping Logic
+                if "contract" in feat_raw and impact > 0:
+                    reason_codes.append("contract_type_monthly")
+                elif "tenure" in feat_raw and impact < 0:
+                    reason_codes.append("tenure_lt_12mo")
+                elif "techsupport" in feat_raw and impact < 0:
+                    reason_codes.append("no_techsupport")
+                elif "internetservice" in feat_raw and impact > 0:
+                    reason_codes.append("fiber_optic_churn_risk")
+                elif "totalcharges" in feat_raw:
+                    reason_codes.append("high_total_charges" if impact > 0 else "low_total_charges")
+                else:
+                    suffix = "high" if impact > 0 else "low"
+                    reason_codes.append(f"{feat_raw}_{suffix}")
+                    
+            # Ensure unique reason codes
+            reason_codes = list(dict.fromkeys(reason_codes))
+                
         except Exception as e:
-            logger.warning(f"Failed to generate reason codes: {e}")
-            reason_codes = ["Information unavailable"]
+            logger.error(f"Reason codes failed: {str(e)}")
+            reason_codes = ["analysis_unavailable"]
         
         latency_ms = (time.perf_counter() - start_time) * 1000
         
-        return is_churn, churn_prob, reason_codes, latency_ms
+        return is_churn, churn_prob, risk_tier, reason_codes, latency_ms
 
     def is_loaded(self) -> bool:
         """Check if the model instance is ready for prediction."""

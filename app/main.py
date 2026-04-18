@@ -118,7 +118,7 @@ async def predict(request: PredictionRequest):
             logger.warning(f"Unexpected gender value: {data['gender']}. This may lead to biased results.")
         # --------------------------------------------------
 
-        is_churn, prob, reason_codes, latency_ms = model.predict_with_latency(data)
+        is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(data)
         
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
         # Log prediction distribution by gender to track bias in real-time
@@ -130,11 +130,11 @@ async def predict(request: PredictionRequest):
         # --------------------------------------------------
         
         return PredictionResponse(
-            churn_probability=round(prob, 4),
+            churn_probability=round(prob, 3),
             is_churn=is_churn,
+            risk_tier=risk_tier,
             reason_codes=reason_codes,
-            model_version=model.loaded_version,
-            latency_ms=round(latency_ms, 3)
+            model_version=model.loaded_version
         )
     except HTTPException as e:
         raise e
@@ -153,14 +153,14 @@ async def predict_batch(request: BatchPredictionRequest):
         total_latency = 0
         
         for item in request.predictions:
-            is_churn, prob, reason_codes, latency_ms = model.predict_with_latency(item.model_dump())
+            is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(item.model_dump())
             total_latency += latency_ms
             results.append(PredictionResponse(
-                churn_probability=round(prob, 4),
+                churn_probability=round(prob, 3),
                 is_churn=is_churn,
+                risk_tier=risk_tier,
                 reason_codes=reason_codes,
-                model_version=model.loaded_version,
-                latency_ms=round(latency_ms, 3)
+                model_version=model.loaded_version
             ))
         
         avg_latency = total_latency / len(results) if results else 0
