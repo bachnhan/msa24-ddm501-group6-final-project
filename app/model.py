@@ -13,7 +13,7 @@ for secret_file in [".secret", "/etc/secrets/.env", "/etc/secrets/.secret"]:
     if os.path.exists(secret_file):
         load_dotenv(secret_file, override=True)
 
-from app.config import MODEL_PATH, MODEL_VERSION
+from app.config import MODEL_PATH
 from app.metrics import (
     MODEL_LOADED, 
     MODEL_LAST_RELOAD, 
@@ -28,7 +28,7 @@ class ChurnModel:
     def __init__(self, model_path: str = MODEL_PATH):
         self.model_path = model_path
         self.model = None
-        self.version = MODEL_VERSION
+        self.loaded_version = "initializing..."
         self.last_error = None
         self._load_model()
     
@@ -73,7 +73,8 @@ class ChurnModel:
                     
                 logger.info(f"Fetching model from Registry using URI: {model_uri}")
                 self.model = mlflow.sklearn.load_model(model_uri)
-                logger.info("Successfully loaded model from MLflow Registry.")
+                self.loaded_version = model_ref
+                logger.info(f"Successfully loaded model version {model_ref} from MLflow Registry.")
             else:
                 raise ValueError("Missing MLflow environment variables for Registry connection.")
 

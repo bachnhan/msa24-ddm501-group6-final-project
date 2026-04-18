@@ -10,7 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Model settings
 MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "churn_model.pkl"))
-MODEL_VERSION = os.getenv("MODEL_VERSION", "1.0.0")
 
 # API settings
 API_TITLE = "Customer Churn Prediction API"

@@ -10,7 +10,6 @@ from app.config import (
     API_TITLE, 
     API_DESCRIPTION, 
     API_VERSION, 
-    MODEL_VERSION,
     METRICS_ENABLED,
 )
 from app.model import get_model
@@ -88,8 +87,8 @@ async def health_check():
     return HealthResponse(
         status="healthy" if model.is_loaded() else "unhealthy",
         model_loaded=model.is_loaded(),
-        model_version=MODEL_VERSION,
-        error=model.get_last_error() # New field for debugging
+        model_version=model.loaded_version,
+        error=model.get_last_error() 
     )
 
 @app.get("/metrics", tags=["Monitoring"])
@@ -125,7 +124,7 @@ async def predict(request: PredictionRequest):
         # Log prediction distribution by gender to track bias in real-time
         if METRICS_ENABLED:
             PREDICTION_BY_GENDER.labels(
-                model_version=MODEL_VERSION, 
+                model_version=model.loaded_version, 
                 gender=data['gender']
             ).observe(prob)
         # --------------------------------------------------
@@ -133,7 +132,7 @@ async def predict(request: PredictionRequest):
         return PredictionResponse(
             churn_probability=round(prob, 4),
             is_churn=is_churn,
-            model_version=MODEL_VERSION,
+            model_version=model.loaded_version,
             latency_ms=round(latency_ms, 3)
         )
     except HTTPException as e:
@@ -158,7 +157,7 @@ async def predict_batch(request: BatchPredictionRequest):
             results.append(PredictionResponse(
                 churn_probability=round(prob, 4),
                 is_churn=is_churn,
-                model_version=MODEL_VERSION,
+                model_version=model.loaded_version,
                 latency_ms=round(latency_ms, 3)
             ))
         
