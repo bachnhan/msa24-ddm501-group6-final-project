@@ -31,11 +31,6 @@ jobs:
           # exit-zero treats all errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
 
-      - name: Train model
-        run: |
-          mkdir -p models
-          python scripts/train_model.py
-
       - name: Run Tests
         run: |
           pytest tests/ --cov=app --cov-report=xml
