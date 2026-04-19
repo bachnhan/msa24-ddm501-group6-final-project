@@ -112,8 +112,10 @@ async def predict(request: PredictionRequest):
         data = request.model_dump()
         
         # --- RESPONSIBLE AI: API GUARDRAILS (Rubric 3.1.5) ---
-        if data['tenure'] < 0 or data['tenure'] > 120:
-            raise HTTPException(status_code=400, detail="Guardrail: Tenure must be between 0 and 120 months.")
+        # Pydantic handles ge/le validation automatically (422 Error)
+        # We keep these for extra safety or custom error messages
+        if data['tenure'] < 0 or data['tenure'] > 360:
+            raise HTTPException(status_code=400, detail="Guardrail: Tenure must be between 0 and 360 months.")
         
         if data['totalcharges'] < 0:
             raise HTTPException(status_code=400, detail="Guardrail: Total charges cannot be negative.")
@@ -156,6 +158,13 @@ async def predict_batch(request: BatchPredictionRequest):
     model = get_model()
     if not model.is_loaded():
         raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    # --- BATCH GUARDRAIL: Max 1,000 records ---
+    if len(request.predictions) > 1000:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Batch size too large: {len(request.predictions)} records. Limit is 1,000."
+        )
     
     try:
         results = []
