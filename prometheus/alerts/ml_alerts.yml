@@ -34,12 +34,4 @@ groups:
         annotations:
           summary: "Slow ML Inference"
           description: "P99 prediction latency is {{ $value }}s (threshold: 0.1s)"
-      
-      - alert: ModelDriftPSI
-        expr: ml_feature_psi > 0.20
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Model Drift detected (PSI > 0.20)"
-          description: "Feature '{{ $labels.feature }}' has a PSI of {{ $value }} (threshold: 0.20)"
+ 
