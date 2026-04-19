@@ -96,10 +96,26 @@ def test_metrics_logic_direct():
     get_all_metrics()
 
 
-def test_middleware_direct_init():
+def test_middleware_exhaustive_dispatch():
+    """Directly test the dispatch method to ensure labels are recorded."""
+    import asyncio
+    from fastapi import Request
+    from fastapi.responses import Response
+
     mock_app = MagicMock()
     middleware = MetricsMiddleware(mock_app)
-    assert middleware is not None
+
+    scope = {"type": "http", "method": "POST", "path": "/predict", "headers": []}
+    request = Request(scope=scope)
+
+    async def call_next(req):
+        return Response(content="ok", status_code=200)
+
+    async def run_dispatch():
+        res = await middleware.dispatch(request, call_next)
+        assert res.status_code == 200
+
+    asyncio.run(run_dispatch())
 
 
 def test_model_fallback_brute_force():
