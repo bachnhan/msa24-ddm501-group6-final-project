@@ -20,64 +20,75 @@ from app.middleware import MetricsMiddleware
 client = TestClient(app)
 
 
-@pytest.mark.asyncio
-async def test_exhaustive_direct_calls(auth_header):
-    # 1. Call root direct
-    await root()
+def test_exhaustive_direct_calls():
+    """Portable direct call test using asyncio.run() to avoid CI/CD skip issues."""
+    import asyncio
+    import base64
 
-    # 2. Call health direct
-    await health_check()
+    auth_str = "admin:admin"
+    encoded = base64.b64encode(auth_str.encode()).decode()
+    auth_val = f"Basic {encoded}"
 
-    # 3. Call metrics direct
-    try:
-        await metrics()
-    except:
-        pass
+    async def run_internal():
+        # 1. Call root direct
+        await root()
 
-    # 4. Call admin dashboard direct (Hits the 120+ lines of HTML)
-    await admin_dashboard(auth_header["Authorization"])
+        # 2. Call health direct
+        await health_check()
 
-    # 5. Call predict direct
-    from app.schemas import PredictionRequest, BatchPredictionRequest
+        # 3. Call metrics direct
+        try:
+            await metrics()
+        except:
+            pass
 
-    with patch("app.model.get_model") as mock_get:
-        model_instance = mock_get.return_value
-        model_instance.is_loaded.return_value = True
-        model_instance.predict_with_latency.return_value = (
-            False,
-            0.1,
-            "Low",
-            ["none"],
-            1.0,
-        )
+        # 4. Call admin dashboard direct (Hits the 120+ lines of HTML)
+        await admin_dashboard(auth_val)
 
-        req = PredictionRequest(
-            gender="Male",
-            seniorcitizen=0,
-            partner="No",
-            dependents="No",
-            tenure=10,
-            phoneservice="Yes",
-            multiplelines="No",
-            internetservice="DSL",
-            onlinesecurity="No",
-            onlinebackup="No",
-            deviceprotection="No",
-            techsupport="No",
-            streamingtv="No",
-            streamingmovies="No",
-            contract="Month-to-month",
-            paperlessbilling="Yes",
-            paymentmethod="Electronic check",
-            monthlycharges=50.0,
-            totalcharges=500.0,
-        )
-        await predict(req)
+        # 5. Call predict direct
+        from app.schemas import PredictionRequest, BatchPredictionRequest
 
-        # 6. Call batch predict direct
-        batch_req = BatchPredictionRequest(predictions=[req])
-        model_instance.predict_batch_with_latency.return_value = ([], 1.0)
-        await predict_batch(batch_req)
+        with patch("app.model.get_model") as mock_get:
+            model_instance = mock_get.return_value
+            model_instance.is_loaded.return_value = True
+            model_instance.predict_with_latency.return_value = (
+                False,
+                0.1,
+                "Low",
+                ["none"],
+                1.0,
+            )
+
+            req = PredictionRequest(
+                gender="Male",
+                seniorcitizen=0,
+                partner="No",
+                dependents="No",
+                tenure=10,
+                phoneservice="Yes",
+                multiplelines="No",
+                internetservice="DSL",
+                onlinesecurity="No",
+                onlinebackup="No",
+                deviceprotection="No",
+                techsupport="No",
+                streamingtv="No",
+                streamingmovies="No",
+                contract="Month-to-month",
+                paperlessbilling="Yes",
+                paymentmethod="Electronic check",
+                monthlycharges=50.0,
+                totalcharges=500.0,
+            )
+            await predict(req)
+
+            # 6. Call batch predict direct
+            batch_req = BatchPredictionRequest(predictions=[req])
+            model_instance.predict_batch_with_latency.return_value = ([], 1.0)
+            await predict_batch(batch_req)
+
+    # Execute the async core synchronously
+    asyncio.run(run_internal())
 
 
 def test_metrics_logic_direct():
