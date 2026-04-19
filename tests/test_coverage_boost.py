@@ -100,3 +100,56 @@ def test_shap_execution_path():
         assert isinstance(reasons, list)
     except Exception:
         pass
+
+
+# 6. BRUTE FORCE COVERAGE: Manually trigger individual branches in model.py
+def test_model_internal_logic_branches():
+    from app.model import get_model
+
+    model = get_model()
+
+    # Case: SHAP returns values with .values attribute
+    with patch("shap.Explainer") as mock_explainer:
+        mock_e = mock_explainer.return_value
+        mock_v = MagicMock()
+        # Mocking 3 features to hit the loop
+        mock_v.values = [
+            [0.1, -0.5, 0.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+        mock_e.return_value = mock_v
+
+        # We need to ensure preprocessor has get_feature_names_out
+        model.model.named_steps["pre"].get_feature_names_out = MagicMock(
+            return_value=["num__contract", "num__tenure", "num__totalcharges"]
+            + ["other"] * 16
+        )
+
+        data = {
+            "gender": "Male",
+            "tenure": 10,
+            "monthlycharges": 50,
+            "totalcharges": 500,
+            "contract": "Month-to-month",
+        }
+        # This will force execution of the semantic mapping logic
+        _, _, _, reasons, _ = model.predict_with_latency(data)
+        assert len(reasons) > 0
+
+
+# 7. Test Admin Auth failure paths (Hits main.py missing lines)
+def test_admin_auth_failures():
+    # Wrong password
+    import base64
+
+    auth_str = "admin:wrong"
+    encoded = base64.b64encode(auth_str.encode()).decode()
+    response = client.get("/admin", headers={"Authorization": f"Basic {encoded}"})
+    assert response.status_code == 401
+
+
+# 8. Test Predict Latency with missing model
+def test_predict_no_model():
+    model = ChurnModel()
+    model.model = None
+    with pytest.raises(RuntimeError):
+        model.predict_with_latency({})
