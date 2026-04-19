@@ -6,9 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
+
 @pytest.fixture
 def client():
     return TestClient(app)
+
 
 def test_predict_endpoint_success(client):
     """Test standard prediction request."""
@@ -31,7 +33,7 @@ def test_predict_endpoint_success(client):
         "paperlessbilling": "Yes",
         "paymentmethod": "Electronic check",
         "monthlycharges": 29.85,
-        "totalcharges": 29.85
+        "totalcharges": 29.85,
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
@@ -42,6 +44,7 @@ def test_predict_endpoint_success(client):
     assert "reason_codes" in data
     assert isinstance(data["reason_codes"], list)
 
+
 def test_predict_invalid_input(client):
     """Test prediction with invalid tenure (Guardrail test)."""
     payload = {
@@ -49,7 +52,7 @@ def test_predict_invalid_input(client):
         "seniorcitizen": 0,
         "partner": "Yes",
         "dependents": "No",
-        "tenure": -5, # Invalid tenure
+        "tenure": -5,  # Invalid tenure
         "phoneservice": "No",
         "multiplelines": "No phone service",
         "internetservice": "DSL",
@@ -63,11 +66,12 @@ def test_predict_invalid_input(client):
         "paperlessbilling": "Yes",
         "paymentmethod": "Electronic check",
         "monthlycharges": 29.85,
-        "totalcharges": 29.85
+        "totalcharges": 29.85,
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 400
     assert "Guardrail: Tenure" in response.json()["detail"]
+
 
 def test_health_check(client):
     """Verify health check endpoint."""

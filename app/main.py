@@ -7,9 +7,9 @@ import secrets
 import os
 
 from app.config import (
-    API_TITLE, 
-    API_DESCRIPTION, 
-    API_VERSION, 
+    API_TITLE,
+    API_DESCRIPTION,
+    API_VERSION,
     METRICS_ENABLED,
 )
 from app.model import get_model
@@ -22,10 +22,10 @@ from app.schemas import (
 )
 from app.middleware import MetricsMiddleware
 from app.metrics import (
-    count_implemented_metrics, 
-    PREDICTION_BY_GENDER, 
-    PREDICTION_COUNT, 
-    PREDICTION_LATENCY
+    count_implemented_metrics,
+    PREDICTION_BY_GENDER,
+    PREDICTION_COUNT,
+    PREDICTION_LATENCY,
 )
 
 # Setup logging
@@ -41,6 +41,7 @@ app = FastAPI(
 
 # Security for Admin features
 security = HTTPBasic()
+
 
 def get_admin_user(credentials: HTTPBasicCredentials = Depends(security)):
     """Simple basic auth check for admin/admin"""
@@ -62,6 +63,7 @@ def get_admin_user(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials.username
 
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -75,6 +77,7 @@ app.add_middleware(
 if METRICS_ENABLED:
     app.add_middleware(MetricsMiddleware)
 
+
 @app.get("/", tags=["Info"])
 async def root():
     implemented, total = count_implemented_metrics()
@@ -86,6 +89,7 @@ async def root():
         "metrics": "/metrics",
     }
 
+
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     model = get_model()
@@ -93,8 +97,9 @@ async def health_check():
         status="healthy" if model.is_loaded() else "unhealthy",
         model_loaded=model.is_loaded(),
         model_version=model.loaded_version,
-        error=model.get_last_error() 
+        error=model.get_last_error(),
     )
+
 
 @app.get("/metrics", tags=["Monitoring"])
 async def metrics():
@@ -102,31 +107,41 @@ async def metrics():
         raise HTTPException(status_code=503, detail="Metrics disabled")
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(request: PredictionRequest):
     model = get_model()
     if not model.is_loaded():
         raise HTTPException(status_code=503, detail="Model not loaded")
-    
+
     try:
         data = request.model_dump()
-        
+
         # --- RESPONSIBLE AI: API GUARDRAILS (Rubric 3.1.5) ---
         # Pydantic handles ge/le validation automatically (422 Error)
         # We keep these for extra safety or custom error messages
-        if data['tenure'] < 0 or data['tenure'] > 360:
-            raise HTTPException(status_code=400, detail="Guardrail: Tenure must be between 0 and 360 months.")
-        
-        if data['totalcharges'] < 0:
-            raise HTTPException(status_code=400, detail="Guardrail: Total charges cannot be negative.")
+        if data["tenure"] < 0 or data["tenure"] > 360:
+            raise HTTPException(
+                status_code=400,
+                detail="Guardrail: Tenure must be between 0 and 360 months.",
+            )
 
-        if data['gender'] not in ['Male', 'Female']:
+        if data["totalcharges"] < 0:
+            raise HTTPException(
+                status_code=400, detail="Guardrail: Total charges cannot be negative."
+            )
+
+        if data["gender"] not in ["Male", "Female"]:
             # Example of handling bias/privacy: map unknown or sensitive identifiers to a baseline
-            logger.warning(f"Unexpected gender value: {data['gender']}. This may lead to biased results.")
+            logger.warning(
+                f"Unexpected gender value: {data['gender']}. This may lead to biased results."
+            )
         # --------------------------------------------------
 
-        is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(data)
-        
+        is_churn, prob, risk_tier, reason_codes, latency_ms = (
+            model.predict_with_latency(data)
+        )
+
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
         if METRICS_ENABLED:
             # 1. Prediction count
@@ -135,17 +150,16 @@ async def predict(request: PredictionRequest):
             PREDICTION_LATENCY.observe(latency_ms / 1000.0)
             # 3. Bias tracking
             PREDICTION_BY_GENDER.labels(
-                model_version=model.loaded_version, 
-                gender=data['gender']
+                model_version=model.loaded_version, gender=data["gender"]
             ).observe(prob)
         # --------------------------------------------------
-        
+
         return PredictionResponse(
             churn_probability=round(prob, 3),
             is_churn=is_churn,
             risk_tier=risk_tier,
             reason_codes=reason_codes,
-            model_version=model.loaded_version
+            model_version=model.loaded_version,
         )
     except HTTPException as e:
         raise e
@@ -153,54 +167,59 @@ async def predict(request: PredictionRequest):
         logger.error(f"Prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/predict/batch", response_model=BatchPredictionResponse, tags=["Prediction"])
 async def predict_batch(request: BatchPredictionRequest):
     model = get_model()
     if not model.is_loaded():
         raise HTTPException(status_code=503, detail="Model not loaded")
-    
+
     # --- BATCH GUARDRAIL: Max 1,000 records ---
     if len(request.predictions) > 1000:
         raise HTTPException(
-            status_code=400, 
-            detail=f"Batch size too large: {len(request.predictions)} records. Limit is 1,000."
+            status_code=400,
+            detail=f"Batch size too large: {len(request.predictions)} records. Limit is 1,000.",
         )
-    
+
     try:
         results = []
-        total_latency = 0
-        
+        total_latency = 0.0
+
         for item in request.predictions:
-            is_churn, prob, risk_tier, reason_codes, latency_ms = model.predict_with_latency(item.model_dump())
+            is_churn, prob, risk_tier, reason_codes, latency_ms = (
+                model.predict_with_latency(item.model_dump())
+            )
             total_latency += latency_ms
-            
+
             # Record per-item metrics
             if METRICS_ENABLED:
                 PREDICTION_COUNT.labels(model_version=model.loaded_version).inc()
                 PREDICTION_LATENCY.observe(latency_ms / 1000.0)
 
-            results.append(PredictionResponse(
-                churn_probability=round(prob, 3),
-                is_churn=is_churn,
-                risk_tier=risk_tier,
-                reason_codes=reason_codes,
-                model_version=model.loaded_version
-            ))
-        
+            results.append(
+                PredictionResponse(
+                    churn_probability=round(prob, 3),
+                    is_churn=is_churn,
+                    risk_tier=risk_tier,
+                    reason_codes=reason_codes,
+                    model_version=model.loaded_version,
+                )
+            )
+
         avg_latency = total_latency / len(results) if results else 0
         return BatchPredictionResponse(
             predictions=results,
             total_count=len(results),
-            avg_latency_ms=round(avg_latency, 3)
+            avg_latency_ms=round(avg_latency, 3),
         )
     except Exception as e:
         logger.error(f"Batch prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/model/reload", tags=["Admin"])
 async def reload_model(
-    version_or_alias: str = "latest", 
-    admin_user: str = Depends(get_admin_user)
+    version_or_alias: str = "latest", admin_user: str = Depends(get_admin_user)
 ):
     """
     Force the API to reload the model from the Registry.
@@ -208,24 +227,24 @@ async def reload_model(
 
     model = get_model()
     success = model.reload(version_or_alias)
-    
+
     if success:
         return {
-            "status": "success", 
+            "status": "success",
             "message": f"Model reloaded successfully using reference: {version_or_alias}",
-            "model_loaded": True
+            "model_loaded": True,
         }
     else:
         raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to reload model: {model.get_last_error()}"
+            status_code=500, detail=f"Failed to reload model: {model.get_last_error()}"
         )
+
 
 @app.get("/admin", tags=["Admin"])
 async def admin_dashboard(admin_user: str = Depends(get_admin_user)):
     """Returns a simple, beautiful Admin Dashboard to manage the model."""
     from fastapi.responses import HTMLResponse
-    
+
     html_content = """
     <!DOCTYPE html>
     <html>
@@ -352,6 +371,8 @@ async def admin_dashboard(admin_user: str = Depends(get_admin_user)):
     """
     return HTMLResponse(content=html_content)
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
