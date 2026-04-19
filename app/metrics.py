@@ -53,7 +53,14 @@ PREDICTION_BY_GENDER = Histogram(
     ['model_version', 'gender']
 )
 
-# --- 5. Aliases for Compatibility ---
+# --- 5. Model Drift Metrics ---
+ML_FEATURE_PSI = Gauge(
+    'ml_feature_psi', 
+    'Population Stability Index (PSI) for key features',
+    ['feature']
+)
+
+# --- 6. Aliases for Compatibility ---
 PREDICTION_TOTAL = PREDICTION_COUNT
 MODEL_ERROR_TOTAL = PREDICTION_ERRORS
 
@@ -69,7 +76,9 @@ def get_all_metrics():
         'PREDICTION_ERRORS': PREDICTION_ERRORS,
         'MODEL_LOADED': MODEL_LOADED,
         'MODEL_INFO': MODEL_INFO,
-        'MODEL_LAST_RELOAD': MODEL_LAST_RELOAD
+        'MODEL_LAST_RELOAD': MODEL_LAST_RELOAD,
+        'ML_FEATURE_PSI': ML_FEATURE_PSI,
+        'PREDICTION_BY_GENDER': PREDICTION_BY_GENDER
     }
 
 def count_implemented_metrics():
