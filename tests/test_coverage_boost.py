@@ -38,11 +38,11 @@ def test_metrics_disabled_branch():
 
 def test_model_not_loaded_branch():
     async def run():
-        # Specifically target the get_model() return value's attribute
         with patch("app.model.get_model") as mock_get:
             mock_model = mock_get.return_value
+            # Use a mock that responds to bool() if needed
+            mock_model.is_loaded = MagicMock(return_value=False)
             mock_model.is_loaded.__bool__.return_value = False
-            mock_model.is_loaded.return_value = False
             with pytest.raises(HTTPException):
                 await predict(MagicMock())
 
@@ -51,11 +51,9 @@ def test_model_not_loaded_branch():
 
 def test_model_reload_fail_branches():
     model = ChurnModel()
-    # Trigger ValueError branch in model.py:114
     with patch("os.environ.get", return_value=None):
         model.reload("any")
         assert "DUMMY" in model.loaded_version
-    # Trigger general Exception branch in model.py:118
     with patch("mlflow.set_tracking_uri", side_effect=RuntimeError("MLflow Down")):
         model.reload("any")
         assert "DUMMY" in model.loaded_version
@@ -63,21 +61,35 @@ def test_model_reload_fail_branches():
 
 def test_guardrail_branches():
     async def run():
+        # Build a valid schema-compliant dict for partial testing
+        # Tenure fail
         req = MagicMock()
-        # Trigger Tenure fail
         req.model_dump.return_value = {
-            "tenure": -1,
             "gender": "Male",
-            "totalcharges": 100,
+            "seniorcitizen": 0,
+            "partner": "No",
+            "dependents": "No",
+            "tenure": -1,
+            "phoneservice": "Yes",
+            "multiplelines": "No",
+            "internetservice": "DSL",
+            "onlinesecurity": "No",
+            "onlinebackup": "No",
+            "deviceprotection": "No",
+            "techsupport": "No",
+            "streamingtv": "No",
+            "streamingmovies": "No",
+            "contract": "Month-to-month",
+            "paperlessbilling": "Yes",
+            "paymentmethod": "Electronic check",
+            "monthlycharges": 50.0,
+            "totalcharges": 100.0,
         }
         with pytest.raises(HTTPException):
             await predict(req)
-        # Trigger Total charges fail
-        req.model_dump.return_value = {
-            "tenure": 10,
-            "gender": "Male",
-            "totalcharges": -50,
-        }
+        # Total charges fail
+        req.model_dump.return_value["tenure"] = 10
+        req.model_dump.return_value["totalcharges"] = -50
         with pytest.raises(HTTPException):
             await predict(req)
 
@@ -89,7 +101,7 @@ def test_batch_exception_branch():
         with patch(
             "app.model.ChurnModel.predict_with_latency", side_effect=Exception("Fail")
         ):
-            # Use REAL Pydantic objects to avoid pydantic_core errors
+            # VERIFIED schema-compliant values
             req = PredictionRequest(
                 gender="Male",
                 seniorcitizen=0,
@@ -130,29 +142,27 @@ def test_shap_logic_deep():
                 return_value=["f"] * 19
             )
 
+        # Valid strings for raw dict bypass if model uses them
         data = {
-            k: 0
-            for k in [
-                "gender",
-                "seniorcitizen",
-                "partner",
-                "dependents",
-                "tenure",
-                "phoneservice",
-                "multiplelines",
-                "internetservice",
-                "onlinesecurity",
-                "onlinebackup",
-                "deviceprotection",
-                "techsupport",
-                "streamingtv",
-                "streamingmovies",
-                "contract",
-                "paperlessbilling",
-                "paymentmethod",
-                "monthlycharges",
-                "totalcharges",
-            ]
+            "gender": "Male",
+            "seniorcitizen": 0,
+            "partner": "No",
+            "dependents": "No",
+            "tenure": 10,
+            "phoneservice": "Yes",
+            "multiplelines": "No",
+            "internetservice": "DSL",
+            "onlinesecurity": "No",
+            "onlinebackup": "No",
+            "deviceprotection": "No",
+            "techsupport": "No",
+            "streamingtv": "No",
+            "streamingmovies": "No",
+            "contract": "Month-to-month",
+            "paperlessbilling": "Yes",
+            "paymentmethod": "Electronic check",
+            "monthlycharges": 50.0,
+            "totalcharges": 500.0,
         }
         model.predict_with_latency(data)
 
@@ -181,6 +191,7 @@ def test_sync_helpers():
         await admin_dashboard("admin")
         with patch("app.main.METRICS_ENABLED", True):
             await metrics()
+
         req = PredictionRequest(
             gender="Male",
             seniorcitizen=0,
