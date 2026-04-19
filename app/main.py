@@ -138,9 +138,13 @@ async def predict(request: PredictionRequest):
             )
         # --------------------------------------------------
 
-        is_churn, prob, risk_tier, reason_codes, latency_ms = (
-            model.predict_with_latency(data)
-        )
+        (
+            is_churn,
+            prob,
+            risk_tier,
+            reason_codes,
+            latency_ms,
+        ) = model.predict_with_latency(data)
 
         # --- RESPONSIBLE AI: MONITORING (Rubric 3.1.5) ---
         if METRICS_ENABLED:
@@ -186,9 +190,13 @@ async def predict_batch(request: BatchPredictionRequest):
         total_latency = 0.0
 
         for item in request.predictions:
-            is_churn, prob, risk_tier, reason_codes, latency_ms = (
-                model.predict_with_latency(item.model_dump())
-            )
+            (
+                is_churn,
+                prob,
+                risk_tier,
+                reason_codes,
+                latency_ms,
+            ) = model.predict_with_latency(item.model_dump())
             total_latency += latency_ms
 
             # Record per-item metrics
