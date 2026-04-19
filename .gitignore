@@ -1,58 +1,49 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
 
-# Security
-.env
-.secret
-.env.local
-
-# Distribution
-dist/
-build/
-*.egg-info/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
-*.cover
-
-# Models (Exclusively managed via MLflow Registry)
-models/
 !models/.gitkeep
-
 # Data (Exclusively managed via External Sources/DVC)
-data/
-*.csv
-
-# Logs
-*.log
-
+# Distribution
 # Docker volumes (local data)
-prometheus_data/
-grafana_data/
-
+# IDE
+# Logs
 # MLflow
-mlruns/
-outputs/
-
+# Models (Exclusively managed via MLflow Registry)
 # OS
-.DS_Store
-Thumbs.db
-
+# Python
+# Security
+# Testing
 # Visual Artifacts
+*$py.class
+*.cover
+*.csv
+*.egg-info/
+*.log
 *.png
+*.py[cod]
+*.pyc
+*.so
+*.swo
+*.swp
+.DS_Store
+.Python
+.coverage
+.env
+.env.local
+.idea/
+.pytest_cache/
+.secret
+.vscode/
+Thumbs.db
+__pycache__/
+build/
+coverage.xml
+data/
 data_integrity_report.html
+dist/
+env/
+grafana_data/
+htmlcov/
+mlruns/
+models/
+outputs/
+prometheus_data/
+venv/

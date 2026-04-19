@@ -182,6 +182,17 @@ class ChurnModel:
         # Convert dictionary to DataFrame
         X = pd.DataFrame([data_dict])
 
+        # --- PRODUCTION ROBUSTNESS: Handle Missing Columns for Legacy Models ---
+        try:
+             # If the model has a preprocessor, check required features
+             if hasattr(self.model, "named_steps") and "pre" in self.model.named_steps:
+                 required_features = self.model.named_steps["pre"].feature_names_in_
+                 for col in required_features:
+                     if col not in X.columns:
+                         X[col] = 0  # Fill with default
+        except Exception:
+             pass
+
         # Get predictions
         churn_prob = float(self.model.predict_proba(X)[0, 1])
         is_churn = bool(self.model.predict(X)[0])
