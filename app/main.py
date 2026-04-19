@@ -373,6 +373,7 @@ async def admin_dashboard(admin_user: str = Depends(get_admin_user)):
 
 
 if __name__ == "__main__":
+    # Internal trigger for local service
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
