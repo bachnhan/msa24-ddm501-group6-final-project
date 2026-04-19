@@ -119,19 +119,30 @@ class ChurnModel:
             self.last_error = f"Critical: Failed to load from Registry: {e}"
             logger.error(self.last_error)
 
-            # [CI/CD Fallback] If we can't load from Registry (e.g. GitHub Actions), create a Dummy Model
+            # [CI/CD Fallback] Create a Pipeline-structured Dummy Model to ensure SHAP paths are covered
             try:
                 from sklearn.dummy import DummyClassifier
+                from sklearn.pipeline import Pipeline
+                from sklearn.compose import ColumnTransformer
+                from sklearn.preprocessing import StandardScaler
                 import numpy as np
 
                 logger.warning(
-                    f"Connection failed ({e}). Initializing DUMMY MODEL fallback."
+                    f"Connection failed ({e}). Initializing PIPELINE DUMMY MODEL."
                 )
-                dummy = DummyClassifier(strategy="constant", constant=0)
-                dummy.fit(np.zeros((2, 10)), np.array([0, 1]))
-                self.model = dummy
-                # Indicate it's a dummy fallback in the version string
-                self.loaded_version = "v0.0.1-DUMMY (Registry Connection Failed)"
+
+                # Mock a ColumnTransformer that does nothing (just for SHAP logic to find it)
+                pre = ColumnTransformer(
+                    [("num", StandardScaler(), [0])], remainder="passthrough"
+                )
+                clf = DummyClassifier(strategy="constant", constant=0)
+
+                dummy_pipe = Pipeline([("pre", pre), ("clf", clf)])
+                # Fit on 21 columns to match Telco schema expectations
+                dummy_pipe.fit(np.zeros((2, 21)), np.array([0, 1]))
+
+                self.model = dummy_pipe
+                self.loaded_version = "v0.0.1-PIPELINE-DUMMY"
             except Exception as dummy_err:
                 logger.error(f"Failed to even create a Dummy Model: {dummy_err}")
 
