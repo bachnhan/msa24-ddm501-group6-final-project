@@ -3,56 +3,47 @@ from typing import List, Optional
 
 
 class PredictionRequest(BaseModel):
-    """Input features for Churn prediction (21 fields total with Guardrails)."""
+    """Input features for Churn prediction (19 fields total matching Telco dataset)."""
 
-    gender: str = Field(..., example="Female")
-    seniorcitizen: int = Field(..., example=0, ge=0, le=1)
-    partner: str = Field(..., example="Yes")
-    dependents: str = Field(..., example="No")
+    gender: str = Field(..., examples=["Female"])
+    seniorcitizen: int = Field(..., examples=[0], ge=0, le=1)
+    partner: str = Field(..., examples=["Yes"])
+    dependents: str = Field(..., examples=["No"])
     tenure: int = Field(
-        ..., example=1, ge=0, le=360, description="Tenure in months (0-360)"
+        ..., examples=[1], ge=0, le=360, description="Tenure in months (0-360)"
     )
-    age: int = Field(
-        ..., example=35, ge=18, le=100, description="Age must be between 18 and 100"
-    )
-    phoneservice: str = Field(..., example="No")
-    multiplelines: str = Field(..., example="No phone service")
-    internetservice: str = Field(..., example="DSL")
-    onlinesecurity: str = Field(..., example="No")
-    onlinebackup: str = Field(..., example="Yes")
-    deviceprotection: str = Field(..., example="No")
-    techsupport: str = Field(..., example="No")
-    streamingtv: str = Field(..., example="No")
-    streamingmovies: str = Field(..., example="No")
-    contract: str = Field(..., example="Month-to-month")
-    paperlessbilling: str = Field(..., example="Yes")
-    paymentmethod: str = Field(..., example="Electronic check")
-    monthlycharges: float = Field(..., example=29.85, ge=0)
-    totalcharges: float = Field(..., example=29.85, ge=0)
-    total_services: int = Field(
-        ...,
-        example=3,
-        ge=0,
-        le=10,
-        description="Derived feature: count of active services",
-    )
+    phoneservice: str = Field(..., examples=["No"])
+    multiplelines: str = Field(..., examples=["No phone service"])
+    internetservice: str = Field(..., examples=["DSL"])
+    onlinesecurity: str = Field(..., examples=["No"])
+    onlinebackup: str = Field(..., examples=["Yes"])
+    deviceprotection: str = Field(..., examples=["No"])
+    techsupport: str = Field(..., examples=["No"])
+    streamingtv: str = Field(..., examples=["No"])
+    streamingmovies: str = Field(..., examples=["No"])
+    contract: str = Field(..., examples=["Month-to-month"])
+    paperlessbilling: str = Field(..., examples=["Yes"])
+    paymentmethod: str = Field(..., examples=["Electronic check"])
+    monthlycharges: float = Field(..., examples=[29.85], ge=0)
+    totalcharges: float = Field(..., examples=[29.85], ge=0)
 
 
 class PredictionResponse(BaseModel):
     """Refined output matching the requested sample with probability and risk tier."""
 
     model_config = ConfigDict(protected_namespaces=())
-    churn_probability: float = Field(..., example=0.823)
-    is_churn: bool = Field(..., example=True)
+    churn_probability: float = Field(..., examples=[0.823])
+    # Use lowercase examples for bool if preferred but here True is fine
+    is_churn: bool = Field(..., examples=[True])
     risk_tier: str = Field(
-        ..., example="High", description="Risk level (Low, Medium, High)"
+        ..., examples=["High"], description="Risk level (Low, Medium, High)"
     )
     reason_codes: List[str] = Field(
         ...,
-        example=["contract_type_monthly", "tenure_lt_12mo", "no_techsupport"],
+        examples=[["contract_type_monthly", "tenure_lt_12mo", "no_techsupport"]],
         description="Semantic slug-style reason codes",
     )
-    model_version: str = Field(..., example="1.0.0")
+    model_version: str = Field(..., examples=["1.0.0"])
 
 
 class HealthResponse(BaseModel):
