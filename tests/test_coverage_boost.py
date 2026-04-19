@@ -126,10 +126,24 @@ def test_model_internal_logic_branches():
 
         data = {
             "gender": "Male",
+            "seniorcitizen": 0,
+            "partner": "No",
+            "dependents": "No",
             "tenure": 10,
-            "monthlycharges": 50,
-            "totalcharges": 500,
+            "phoneservice": "Yes",
+            "multiplelines": "No",
+            "internetservice": "DSL",
+            "onlinesecurity": "No",
+            "onlinebackup": "No",
+            "deviceprotection": "No",
+            "techsupport": "No",
+            "streamingtv": "No",
+            "streamingmovies": "No",
             "contract": "Month-to-month",
+            "paperlessbilling": "Yes",
+            "paymentmethod": "Electronic check",
+            "monthlycharges": 50.0,
+            "totalcharges": 500.0,
         }
         # This will force execution of the semantic mapping logic
         _, _, _, reasons, _ = model.predict_with_latency(data)
