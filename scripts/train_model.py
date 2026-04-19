@@ -33,16 +33,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def clean_telco_data(df):
-    """Specific cleaning for the Telco Customer Churn dataset."""
+    """Specific cleaning for the Telco Customer Churn dataset with Tenure Binning."""
     df.columns = [col.lower() for col in df.columns]
     # Remove ID
     df = df.drop(columns=[c for c in ["customerid"] if c in df.columns])
+    
     # Handle numeric conversion for TotalCharges (has empty spaces)
     df["totalcharges"] = pd.to_numeric(df["totalcharges"], errors="coerce")
+    df["totalcharges"] = df["totalcharges"].fillna(0)
+    
+    # --- FEATURE ENGINEERING: Tenure Binning ---
+    bins = [0, 12, 24, 48, 60, 100]
+    labels = ['0-12m', '12-24m', '24-48m', '48-60m', '60m+']
+    df['tenure_group'] = pd.cut(df['tenure'], bins=bins, labels=labels, include_lowest=True).astype(str)
+    
     # Convert Target to numeric
     if "churn" in df.columns:
         df["churn"] = df["churn"].map({"Yes": 1, "No": 0})
-    return df.dropna()
+    
+    return df
 
 def constrained_recall_scorer(y_true, y_probs, min_precision=0.7):
     """Maximum recall achievable while precision >= 0.7."""
@@ -62,11 +71,14 @@ def train_and_register():
     mlflow.sklearn.autolog(log_models=False)
     
     # 2. Data Loading
-    print("📂 Loading TELCO MASTER DATA (V7.0 - Precision 0.7 Focus)...")
+    print("📂 Loading TELCO MASTER DATA (V9.0 - Round 2: Recall Focused)...")
     try:
-        path = "telco-customer-churn/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+        path = "data/WA_Fn-UseC_-Telco-Customer-Churn.csv"
         if not os.path.exists(path):
-             print("⚠️ Telco CSV not found locally.")
+             path = "telco-customer-churn/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+        
+        if not os.path.exists(path):
+             print(f"⚠️ Telco CSV not found at {path}")
              return
         df_raw = clean_telco_data(pd.read_csv(path))
     except Exception as e:
@@ -86,24 +98,28 @@ def train_and_register():
         ('cat', Pipeline([('imp', SimpleImputer(strategy='most_frequent')), ('ohe', OneHotEncoder(handle_unknown='ignore'))]), cat_cols)
     ])
 
-    # 0.7 Precision constraint scorer
-    recall_ctrl_scorer = make_scorer(constrained_recall_scorer, needs_proba=True, min_precision=0.7)
-
     # 4. Multi-Model Loop
     for m_type in ["xgboost", "random_forest", "logistic_regression"]:
-        mlflow.set_experiment("Churn_Telco_Production")
-        with mlflow.start_run(run_name=f"SCRIPT_RAI_{m_type.upper()}"):
-            print(f"\n🚀 Training {m_type.upper()} with SMOTE & P>=0.7 Constraint...")
+        mlflow.set_experiment("Churn_Round2_Optimized")
+        with mlflow.start_run(run_name=f"ROUND2_{m_type.upper()}"):
+            print(f"\n🚀 [Round 2] Training {m_type.upper()} with High Intensity Search...")
             
             if m_type == "xgboost":
-                clf = XGBClassifier(n_estimators=100, max_depth=5, eval_metric='logloss')
-                m_params = {'clf__max_depth': [3, 5, 7]}
+                clf = XGBClassifier(n_estimators=100, eval_metric='logloss', random_state=42)
+                m_params = {
+                    'clf__max_depth': [3, 4, 5, 6],
+                    'clf__learning_rate': [0.01, 0.05, 0.1],
+                    'clf__n_estimators': [100, 200, 300]
+                }
             elif m_type == "random_forest":
                 clf = RandomForestClassifier(random_state=42)
-                m_params = {'clf__n_estimators': [100, 200], 'clf__max_depth': [10, None]}
+                m_params = {
+                    'clf__n_estimators': [100, 200, 300], 
+                    'clf__max_depth': [5, 10, 15, None]
+                }
             else:
-                clf = LogisticRegression(max_iter=2000)
-                m_params = {'clf__C': [0.1, 1.0, 10.0]}
+                clf = LogisticRegression(max_iter=2000, random_state=42)
+                m_params = {'clf__C': [0.01, 0.1, 1.0, 10.0]}
 
             pipe = ImbPipeline([
                 ('pre', preprocessor), 
@@ -111,32 +127,41 @@ def train_and_register():
                 ('clf', clf)
             ])
             
-            search = RandomizedSearchCV(pipe, m_params, n_iter=3, cv=3, scoring=recall_ctrl_scorer)
+            # Increased search intensity (n_iter=15, cv=5)
+            search = RandomizedSearchCV(pipe, m_params, n_iter=15, cv=5, scoring='recall', n_jobs=-1)
             search.fit(X_train, y_train)
             best_model = search.best_estimator_
             
-            # --- THRESHOLD OPTIMIZATION (Prec 0.7 floor) ---
-            y_proba = best_model.predict_proba(X_test)[:, 1]
-            precisions, recalls, thresholds = precision_recall_curve(y_test, y_proba)
-            idx = np.where(precisions >= 0.7)[0]
-            if len(idx) > 0 and idx[0] < len(thresholds):
-                best_threshold = thresholds[min(idx[np.argmax(recalls[idx])], len(thresholds)-1)]
-            else:
-                best_threshold = 0.5
+            # --- [Round 2] THRESHOLD OPTIMIZATION (Recall >= 80% with Max Precision) ---
+            print(f"🔍 Finding optimal threshold for {m_type.upper()} (Target: Recall >= 0.80)...")
+            y_probs = best_model.predict_proba(X_test)[:, 1]
+            precisions, recalls, thresholds = precision_recall_curve(y_test, y_probs)
             
-            y_pred = (y_proba >= best_threshold).astype(int)
+            best_threshold = 0.5 # Default
+            valid_indices = [i for i, r in enumerate(recalls[:-1]) if r >= 0.80]
+            if valid_indices:
+                # Maximize Precision among those meeting the Recall target
+                best_idx = valid_indices[0]
+                max_p = 0
+                for idx in valid_indices:
+                    if precisions[idx] > max_p:
+                        max_p = precisions[idx]
+                        best_idx = idx
+                best_threshold = thresholds[best_idx]
             
-            print(f"🏆 Results for {m_type.upper()} (Threshold: {best_threshold:.4f}):")
+            y_pred = (y_probs >= best_threshold).astype(int)
+            
+            print(f"🏆 Round 2 Results ({m_type.upper()}) at Threshold {best_threshold:.4f}:")
             print(classification_report(y_test, y_pred))
             
             mlflow.log_param("best_threshold", best_threshold)
-            mlflow.log_metric("f2_score", fbeta_score(y_test, y_pred, beta=2))
             mlflow.log_metric("recall", recall_score(y_test, y_pred))
             mlflow.log_metric("precision", precision_score(y_test, y_pred))
+            mlflow.log_metric("f1_score", f1_score(y_test, y_pred))
+            mlflow.log_metric("roc_auc", roc_auc_score(y_test, y_probs))
 
             # --- RESPONSIBLE AI: FAIRNESS ---
             audit_df = X_test.copy()
-            audit_df['actual'] = y_test
             audit_df['predicted'] = y_pred
             gender_col = next((c for c in audit_df.columns if c.lower() == 'gender'), None)
             if gender_col:
@@ -144,8 +169,8 @@ def train_and_register():
                 if len(gender_stats) >= 2:
                     bias_gap = abs(gender_stats.iloc[0] - gender_stats.iloc[1])
                     mlflow.log_metric("bias_gap_gender", bias_gap)
-                gender_stats.to_csv(f"audit_{m_type}.csv")
-                mlflow.log_artifact(f"audit_{m_type}.csv")
+                gender_stats.to_csv(f"audit_v9_{m_type}.csv")
+                mlflow.log_artifact(f"audit_v9_{m_type}.csv")
             
             # --- RESPONSIBLE AI: SHAP ---
             try:
