@@ -45,9 +45,24 @@ def test_dummy_model_initialization():
         assert "DUMMY" in model.loaded_version
         data = {
             "gender": "Male",
+            "seniorcitizen": 0,
+            "partner": "No",
+            "dependents": "No",
             "tenure": 10,
-            "monthlycharges": 50,
-            "totalcharges": 500,
+            "phoneservice": "Yes",
+            "multiplelines": "No",
+            "internetservice": "DSL",
+            "onlinesecurity": "No",
+            "onlinebackup": "No",
+            "deviceprotection": "No",
+            "techsupport": "No",
+            "streamingtv": "No",
+            "streamingmovies": "No",
+            "contract": "Month-to-month",
+            "paperlessbilling": "Yes",
+            "paymentmethod": "Electronic check",
+            "monthlycharges": 50.0,
+            "totalcharges": 500.0,
         }
         is_churn, prob, risk, reasons, latency = model.predict_with_latency(data)
         assert "analysis_unavailable" in reasons

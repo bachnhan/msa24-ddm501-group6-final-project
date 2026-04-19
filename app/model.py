@@ -138,8 +138,8 @@ class ChurnModel:
                 clf = DummyClassifier(strategy="constant", constant=0)
 
                 dummy_pipe = Pipeline([("pre", pre), ("clf", clf)])
-                # Fit on 21 columns to match Telco schema expectations
-                dummy_pipe.fit(np.zeros((2, 21)), np.array([0, 1]))
+                # Fit on 19 columns to match the current Telco schema
+                dummy_pipe.fit(np.zeros((2, 19)), np.array([0, 1]))
 
                 self.model = dummy_pipe
                 self.loaded_version = "v0.0.1-PIPELINE-DUMMY"
