@@ -13,6 +13,7 @@
 This project implements an end-to-end **Customer Churn Prediction System** for the **DDM501 - AI in Production** Capstone. It predicts whether a Telco customer will churn based on their service usage, contract type, and demographics, returning a risk score and explainable reason codes.
 
 **Dataset:** IBM Telco Customer Churn (7,043 records, 26.5% churn rate)  
+**Primary Training:** [ML_Pipeline.ipynb](ML_Pipeline.ipynb) (Final optimized pipeline)  
 **Model:** XGBoost Champion (ROC-AUC ≥ 0.88, Recall ≥ 0.82)  
 **Team:** Lê Huỳnh Trang · Đỗ Trọng Minh Quân · Nguyễn Huỳnh Bách Nhân
 
@@ -21,7 +22,7 @@ This project implements an end-to-end **Customer Churn Prediction System** for t
 ## 🏗️ System Design & Architecture
 
 ### MLOps Workflow
-1. **Training**: Performed in Google Colab → registers models directly to the **DagsHub MLflow Registry**.
+1. **Training**: Executed via [ML_Pipeline.ipynb](ML_Pipeline.ipynb) (v9.0 High-Recall Strategy) → registers models directly to the **DagsHub MLflow Registry**.
 2. **Versioning**: Every model iteration is versioned (v1, v2, v3) in the Central Registry.
 3. **Serving**: The FastAPI application dynamically pulls the `latest` "Champion" model from the registry on startup.
 4. **High Availability**: A local baked-in model serves as a **fallback** if the cloud registry is unreachable.
