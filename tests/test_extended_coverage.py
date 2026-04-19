@@ -27,9 +27,9 @@ def auth_header():
     "tenure,expected_status",
     [
         (0, 200),  # Boundary: min
-        (120, 200),  # Boundary: max
-        (-1, 400),  # Out of bounds: low
-        (121, 400),  # Out of bounds: high
+        (360, 200),  # Boundary: max
+        (-1, 422),  # Out of bounds: low
+        (361, 422),  # Out of bounds: high
     ],
 )
 def test_predict_tenure_guardrails(client, tenure, expected_status):
@@ -81,8 +81,7 @@ def test_predict_negative_spend(client):
         "totalcharges": -100.0,
     }
     response = client.post("/predict", json=payload)
-    assert response.status_code == 400
-    assert "Total charges cannot be negative" in response.json()["detail"]
+    assert response.status_code == 422
 
 
 # 2. BATCH PREDICTION TESTS

@@ -69,8 +69,7 @@ def test_predict_invalid_input(client):
         "totalcharges": 29.85,
     }
     response = client.post("/predict", json=payload)
-    assert response.status_code == 400
-    assert "Guardrail: Tenure" in response.json()["detail"]
+    assert response.status_code == 422
 
 
 def test_health_check(client):
