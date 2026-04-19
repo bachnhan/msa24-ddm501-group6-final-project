@@ -34,3 +34,4 @@ groups:
         annotations:
           summary: "Slow ML Inference"
           description: "P99 prediction latency is {{ $value }}s (threshold: 0.1s)"
+ 

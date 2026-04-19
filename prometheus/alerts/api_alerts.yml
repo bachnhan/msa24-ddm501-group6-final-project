@@ -3,26 +3,26 @@ groups:
     rules:
       - alert: HighErrorRate
         expr: |
-          rate(http_requests_total{status=~"5.."}[1m]) 
-          / rate(http_requests_total[1m]) > 0.05
-        for: 1m
+          rate(http_requests_total{status=~"[45].."}[5m]) 
+          / rate(http_requests_total[5m]) > 0.05
+        for: 5m
         labels:
           severity: critical
         annotations:
           summary: "High API Error Rate ({{ $labels.endpoint }})"
-          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5% over 5m)"
       
       - alert: SlowLatency
         expr: |
           histogram_quantile(0.95, 
-            rate(http_request_duration_seconds_bucket[1m])
-          ) > 0.5
-        for: 1m
+            rate(http_request_duration_seconds_bucket[10m])
+          ) > 0.3
+        for: 10m
         labels:
           severity: warning
         annotations:
           summary: "Slow API Latency ({{ $labels.endpoint }})"
-          description: "P95 latency is {{ $value }}s (threshold: 0.5s)"
+          description: "P95 latency is {{ $value }}s (threshold: 0.3s over 10m)"
       
       - alert: ServiceDown
         expr: up{job="churn-api"} == 0

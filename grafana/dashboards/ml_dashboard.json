@@ -343,7 +343,7 @@
       ],
       "title": "Prediction Errors",
       "type": "timeseries"
-    }
+    },
   ],
   "refresh": "10s",
   "schemaVersion": 38,

@@ -144,7 +144,7 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "red", "value": 80 }
+              { "color": "red", "value": 0.3 }
             ]
           },
           "unit": "s"
@@ -201,8 +201,8 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "orange", "value": 5 },
-              { "color": "red", "value": 10 }
+              { "color": "orange", "value": 3 },
+              { "color": "red", "value": 5 }
             ]
           },
           "unit": "percent"
@@ -235,7 +235,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100",
+          "expr": "rate(http_requests_total{status=~\"[45]..\"}[5m]) / rate(http_requests_total[5m]) * 100",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
