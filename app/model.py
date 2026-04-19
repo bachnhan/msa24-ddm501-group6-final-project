@@ -131,10 +131,8 @@ class ChurnModel:
                     f"Connection failed ({e}). Initializing PIPELINE DUMMY MODEL."
                 )
 
-                # Mock a ColumnTransformer that does nothing (just for SHAP logic to find it)
-                pre = ColumnTransformer(
-                    [("num", StandardScaler(), [0])], remainder="passthrough"
-                )
+                # Mock a ColumnTransformer that just passes through (compatible with strings)
+                pre = ColumnTransformer([], remainder="passthrough")
                 clf = DummyClassifier(strategy="constant", constant=0)
 
                 dummy_pipe = Pipeline([("pre", pre), ("clf", clf)])
