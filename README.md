@@ -12,9 +12,9 @@
 
 This project implements an end-to-end **Customer Churn Prediction System** for the **DDM501 - AI in Production** Capstone. It predicts whether a Telco customer will churn based on their service usage, contract type, and demographics, returning a risk score and explainable reason codes.
 
-**Dataset:** IBM Telco Customer Churn (7,043 records, 26.5% churn rate)  
-**Primary Training:** [ML_Pipeline.ipynb](ML_Pipeline.ipynb) (Final optimized pipeline)  
-**Model:** XGBoost Champion (ROC-AUC ≥ 0.88, Recall ≥ 0.82)  
+**Dataset:** IBM Telco Customer Churn (7,043 records, 26.5% churn rate)
+**Primary Training:** [ML_Pipeline.ipynb](ML_Pipeline.ipynb) (Final optimized pipeline)
+**Model:** XGBoost Champion (ROC-AUC ≥ 0.88, Recall ≥ 0.82)
 **Team:** Lê Huỳnh Trang · Đỗ Trọng Minh Quân · Nguyễn Huỳnh Bách Nhân
 
 ---
@@ -22,12 +22,14 @@ This project implements an end-to-end **Customer Churn Prediction System** for t
 ## 🏗️ System Design & Architecture
 
 ### MLOps Workflow
+
 1. **Training**: Executed via [ML_Pipeline.ipynb](ML_Pipeline.ipynb) (v9.0 High-Recall Strategy) → registers models directly to the **DagsHub MLflow Registry**.
 2. **Versioning**: Every model iteration is versioned (v1, v2, v3) in the Central Registry.
 3. **Serving**: The FastAPI application dynamically pulls the `latest` "Champion" model from the registry on startup.
 4. **High Availability**: A local baked-in model serves as a **fallback** if the cloud registry is unreachable.
 
 ### High-Level Architecture
+
 ```mermaid
 graph TD
     User([CRM / Business App]) -->|POST /predict| LB[FastAPI Gateway]
@@ -46,6 +48,7 @@ graph TD
 ## 🚀 Getting Started
 
 ### 1. Clone & Setup
+
 ```bash
 git clone https://github.com/bachnhan/msa24-ddm501-group6-final-project.git
 cd msa24-ddm501-group6-final-project
@@ -61,7 +64,9 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment
+
 Create a `.env` file (copy from `.env.example`):
+
 ```env
 MLFLOW_TRACKING_URI=https://dagshub.com/your-user/your-repo.mlflow
 MLFLOW_TRACKING_USERNAME=your-user
@@ -72,24 +77,27 @@ MLFLOW_MODEL_NAME=CustomerChurnModel
 > **Note:** Without `.env`, the API will automatically fall back to the local model at `models/churn_model.pkl.gz`. No configuration is required for local testing.
 
 ### 3. Run Locally (No Docker)
+
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
+
 - API Docs (Swagger UI): http://localhost:8000/docs
 - Health Check: http://localhost:8000/health
 
 ### 4. Run with Docker Compose (Full Stack)
+
 ```bash
 docker-compose up --build
 ```
 
-| Service | URL |
-|:--- |:--- |
-| **Prediction API** | http://localhost:8000 |
-| **Swagger UI** | http://localhost:8000/docs |
-| **Prometheus** | http://localhost:9090 |
-| **Grafana** | http://localhost:3000 (admin/admin) |
-| **MLflow UI** | http://localhost:5000 |
+| Service                  | URL                                 |
+| :----------------------- | :---------------------------------- |
+| **Prediction API** | http://localhost:8000               |
+| **Swagger UI**     | http://localhost:8000/docs          |
+| **Prometheus**     | http://localhost:9090               |
+| **Grafana**        | http://localhost:3000 (admin/admin) |
+| **Admin**          | http://localhost:8000/admin         |
 
 ---
 
@@ -97,13 +105,13 @@ docker-compose up --build
 
 ### Endpoint Summary
 
-| Method | Endpoint | Description |
-|:--- |:--- |:--- |
-| `GET` | `/health` | Check model load status |
-| `POST` | `/predict` | Single customer churn prediction |
-| `POST` | `/predict/batch` | Batch predictions (up to 1,000 records) |
-| `GET` | `/metrics` | Prometheus metrics scrape endpoint |
-| `POST` | `/model/reload` | Hot-reload model from registry (admin only) |
+| Method   | Endpoint           | Description                                 |
+| :------- | :----------------- | :------------------------------------------ |
+| `GET`  | `/health`        | Check model load status                     |
+| `POST` | `/predict`       | Single customer churn prediction            |
+| `POST` | `/predict/batch` | Batch predictions (up to 1,000 records)     |
+| `GET`  | `/metrics`       | Prometheus metrics scrape endpoint          |
+| `POST` | `/model/reload`  | Hot-reload model from registry (admin only) |
 
 ---
 
@@ -113,27 +121,27 @@ docker-compose up --build
 
 All fields are **required**. Field names are **lowercase**.
 
-| Field | Type | Valid Values | Example |
-|:--- |:--- |:--- |:--- |
-| `gender` | string | `"Male"`, `"Female"` | `"Female"` |
-| `seniorcitizen` | int | `0` (No), `1` (Yes) | `0` |
-| `partner` | string | `"Yes"`, `"No"` | `"Yes"` |
-| `dependents` | string | `"Yes"`, `"No"` | `"No"` |
-| `tenure` | int | `0` – `120` (months) | `12` |
-| `phoneservice` | string | `"Yes"`, `"No"` | `"Yes"` |
-| `multiplelines` | string | `"Yes"`, `"No"`, `"No phone service"` | `"No"` |
-| `internetservice` | string | `"DSL"`, `"Fiber optic"`, `"No"` | `"Fiber optic"` |
-| `onlinesecurity` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `onlinebackup` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `deviceprotection` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `techsupport` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `streamingtv` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `streamingmovies` | string | `"Yes"`, `"No"`, `"No internet service"` | `"No"` |
-| `contract` | string | `"Month-to-month"`, `"One year"`, `"Two year"` | `"Month-to-month"` |
-| `paperlessbilling` | string | `"Yes"`, `"No"` | `"Yes"` |
-| `paymentmethod` | string | `"Electronic check"`, `"Mailed check"`, `"Bank transfer (automatic)"`, `"Credit card (automatic)"` | `"Electronic check"` |
-| `monthlycharges` | float | Any positive number | `79.85` |
-| `totalcharges` | float | Any positive number | `958.20` |
+| Field                | Type   | Valid Values                                                                                               | Example                |
+| :------------------- | :----- | :--------------------------------------------------------------------------------------------------------- | :--------------------- |
+| `gender`           | string | `"Male"`, `"Female"`                                                                                   | `"Female"`           |
+| `seniorcitizen`    | int    | `0` (No), `1` (Yes)                                                                                    | `0`                  |
+| `partner`          | string | `"Yes"`, `"No"`                                                                                        | `"Yes"`              |
+| `dependents`       | string | `"Yes"`, `"No"`                                                                                        | `"No"`               |
+| `tenure`           | int    | `0` – `360` (months)                                                                                  | `12`                 |
+| `phoneservice`     | string | `"Yes"`, `"No"`                                                                                        | `"Yes"`              |
+| `multiplelines`    | string | `"Yes"`, `"No"`, `"No phone service"`                                                                | `"No"`               |
+| `internetservice`  | string | `"DSL"`, `"Fiber optic"`, `"No"`                                                                     | `"Fiber optic"`      |
+| `onlinesecurity`   | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `onlinebackup`     | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `deviceprotection` | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `techsupport`      | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `streamingtv`      | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `streamingmovies`  | string | `"Yes"`, `"No"`, `"No internet service"`                                                             | `"No"`               |
+| `contract`         | string | `"Month-to-month"`, `"One year"`, `"Two year"`                                                       | `"Month-to-month"`   |
+| `paperlessbilling` | string | `"Yes"`, `"No"`                                                                                        | `"Yes"`              |
+| `paymentmethod`    | string | `"Electronic check"`, `"Mailed check"`, `"Bank transfer (automatic)"`, `"Credit card (automatic)"` | `"Electronic check"` |
+| `monthlycharges`   | float  | Any positive number                                                                                        | `79.85`              |
+| `totalcharges`     | float  | Any positive number                                                                                        | `958.20`             |
 
 #### Example: High-Risk Customer (likely to churn)
 
@@ -164,6 +172,7 @@ curl -X POST http://localhost:8000/predict \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "churn_probability": 0.847,
@@ -207,6 +216,7 @@ curl -X POST http://localhost:8000/predict \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "churn_probability": 0.083,
@@ -249,6 +259,7 @@ curl -X POST http://localhost:8000/predict/batch \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "predictions": [
@@ -281,15 +292,16 @@ curl http://localhost:8000/health
 
 ## 📈 Monitoring & Observability
 
-| Service | URL | Purpose |
-|:--- |:--- |:--- |
-| **Prediction API** | http://localhost:8000/predict | Serving endpoint |
-| **API Docs** | http://localhost:8000/docs | Swagger UI |
-| **Prometheus** | http://localhost:9090 | Metrics collection |
-| **Grafana** | http://localhost:3000 | Dashboards & alerts |
-| **Model Registry** | DagsHub Models Tab | Versioned model artifacts |
+| Service                  | URL                           | Purpose                   |
+| :----------------------- | :---------------------------- | :------------------------ |
+| **Prediction API** | http://localhost:8000/predict | Serving endpoint          |
+| **API Docs**       | http://localhost:8000/docs    | Swagger UI                |
+| **Prometheus**     | http://localhost:9090         | Metrics collection        |
+| **Grafana**        | http://localhost:3000         | Dashboards & alerts       |
+| **Model Registry** | DagsHub Models Tab            | Versioned model artifacts |
 
 ### Key Metrics Tracked
+
 - **API Latency** (P50, P95, P99) — target < 150ms
 - **Prediction Distribution by Risk Tier** — detect drift
 - **Error Rate** (4xx + 5xx) — alert if > 5%
@@ -299,12 +311,12 @@ curl http://localhost:8000/health
 
 ## ⚖️ Responsible AI
 
-| Pillar | Implementation |
-|:--- |:--- |
+| Pillar                   | Implementation                                                        |
+| :----------------------- | :-------------------------------------------------------------------- |
 | **Explainability** | SHAP `reason_codes` returned per prediction — top drivers of churn |
-| **Fairness** | Bias gap tracked between `gender` groups; alert if gap > 0.05 |
-| **Privacy** | `CustomerID` and PII dropped before training |
-| **Guardrails** | Input validation: `tenure` must be 0–120, `totalcharges` ≥ 0 |
+| **Fairness**       | Bias gap tracked between `gender` groups; alert if gap > 0.05       |
+| **Privacy**        | `CustomerID` and PII dropped before training                        |
+| **Guardrails**     | Input validation:`tenure` must be 0–120, `totalcharges` ≥ 0     |
 
 Full details: [Responsible AI Documentation](docs/ETHICS.md)
 
@@ -313,23 +325,30 @@ Full details: [Responsible AI Documentation](docs/ETHICS.md)
 ## 🔧 Troubleshooting
 
 ### API fails to start — `Model not loaded`
+
 ```
 Error: Model not loaded. Check /health for details.
 ```
-**Cause:** DagsHub credentials are missing or invalid.  
+
+**Cause:** DagsHub credentials are missing or invalid.
 **Fix:** The API automatically falls back to the local model. Ensure `models/churn_model.pkl.gz` exists:
+
 ```bash
 ls models/churn_model.pkl.gz   # Should exist in repo
 ```
+
 If missing, re-run `scripts/train_model.py` locally with `--save-local` flag.
 
 ---
 
 ### Docker Compose — port already in use
+
 ```
 Error: Bind for 0.0.0.0:8000 failed: port is already allocated
 ```
+
 **Fix:** Stop any process using the port and retry:
+
 ```bash
 # Windows
 netstat -ano | findstr :8000
@@ -344,8 +363,9 @@ docker-compose up --build
 ---
 
 ### `422 Unprocessable Entity` on `/predict`
-**Cause:** One or more fields are missing or have an invalid value.  
-**Fix:** Check that all 19 fields are present and use exact string values (case-sensitive). Common mistakes:
+
+**Cause:** One or more fields are missing or have an invalid value.**Fix:** Check that all 19 fields are present and use exact string values (case-sensitive). Common mistakes:
+
 - ❌ `"Internet Service": "Fiber"` → ✅ `"internetservice": "Fiber optic"`
 - ❌ `"SeniorCitizen": "No"` → ✅ `"seniorcitizen": 0`
 - ❌ `"Contract": "monthly"` → ✅ `"contract": "Month-to-month"`
@@ -353,25 +373,17 @@ docker-compose up --build
 ---
 
 ### Grafana shows "No data"
-**Cause:** Prometheus hasn't scraped any metrics yet (needs at least 1 prediction).  
-**Fix:**
+
+**Cause:** Prometheus hasn't scraped any metrics yet (needs at least 1 prediction).**Fix:**
+
 1. Send a test prediction request to `/predict`
 2. Wait ~15 seconds for Prometheus to scrape
 3. Refresh Grafana dashboard
 
 ---
 
-### `MLflow UI` is not accessible at `:5000`
-**Cause:** MLflow container may not have started properly.  
-**Fix:**
-```bash
-docker-compose logs mlflow
-docker-compose restart mlflow
-```
-
----
-
 ### Tests failing locally
+
 ```bash
 # Run tests with verbose output
 pytest tests/ -v --tb=short
@@ -387,10 +399,10 @@ pytest tests/ --cov=app --cov-report=term-missing
 
 ## 📚 Documentation
 
-- [Architecture & Trade-offs](ARCHITECTURE.md)
-- [Problem Statement & Business Context](docs/ProblemStatement.md)
-- [Success Metrics](docs/SuccessMetrics.md)
-- [Responsible AI & Ethics](docs/ETHICS.md)
+- [Architecture &amp; Trade-offs](ARCHITECTURE.md)
+- [Problem Statement &amp; Business Context](ProblemStatement.md)
+- [Success Metrics](SuccessMetrics.md)
+- [Responsible AI &amp; Ethics](ETHICS.md)
 - [Team Contributions](CONTRIBUTING.md)
 
 ---
