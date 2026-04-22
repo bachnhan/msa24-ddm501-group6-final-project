@@ -412,7 +412,6 @@ pytest tests/ --cov=app --cov-report=term-missing
 ```bash
 # All tests
 pytest tests/ -v
-
 # With coverage report
 pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing
 
